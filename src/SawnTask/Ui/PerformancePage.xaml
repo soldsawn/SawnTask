@@ -1,0 +1,89 @@
+<UserControl x:Class="SawnTask.Ui.PerformancePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:SawnTask.Ui"
+             Foreground="{DynamicResource Fg}">
+    <!-- The Performance page: devices on the left, the selected device on the right. -->
+    <UserControl.Resources>
+        <!-- One device tile on the left: name, a sub line and a small graph. -->
+        <Style x:Key="DeviceTile" TargetType="ListBoxItem">
+            <Setter Property="Foreground" Value="{DynamicResource Fg}"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="B" Background="Transparent" CornerRadius="4" Padding="10,8" Margin="0,0,0,4"
+                                BorderThickness="1" BorderBrush="Transparent">
+                            <ContentPresenter/>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="B" Property="Background" Value="{DynamicResource CtrlHover}"/>
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="B" Property="Background" Value="{DynamicResource Panel}"/>
+                                <Setter TargetName="B" Property="BorderBrush" Value="{DynamicResource Accent}"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="{DynamicResource Dim}"/>
+            <Setter Property="Margin" Value="0,0,0,2"/>
+        </Style>
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="17"/>
+            <Setter Property="Margin" Value="0,0,0,12"/>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel Margin="15,10,15,10">
+        <TextBlock DockPanel.Dock="Top" Text="{DynamicResource Perf.Title}" Style="{StaticResource PageTitle}" Margin="0,0,0,10"/>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="250"/>
+                <ColumnDefinition Width="12"/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Devices -->
+            <ListBox x:Name="DeviceList" Background="Transparent" BorderThickness="0" SelectedIndex="0"
+                     ItemContainerStyle="{StaticResource DeviceTile}" ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                     SelectionChanged="DeviceList_SelectionChanged"/>
+
+            <!-- Selected device -->
+            <Border Grid.Column="2" Style="{StaticResource Card}" Margin="0" Padding="16">
+                <DockPanel>
+                    <Grid DockPanel.Dock="Top">
+                        <TextBlock x:Name="DeviceTitle" FontSize="26" FontWeight="Light" TextTrimming="CharacterEllipsis" Margin="0,0,110,0"/>
+                        <TextBlock x:Name="DeviceValue" Text="—" FontSize="22" FontFamily="Consolas" Foreground="{DynamicResource Brand}" HorizontalAlignment="Right"/>
+                    </Grid>
+                    <ui:LedBar x:Name="Led" DockPanel.Dock="Top" Height="10" Margin="0,8,0,4"/>
+                    <Grid DockPanel.Dock="Top" Margin="0,4,0,6">
+                        <TextBlock x:Name="GraphNote" Style="{StaticResource Note}" VerticalAlignment="Center"/>
+                        <ComboBox x:Name="ViewBox" HorizontalAlignment="Right" MinWidth="110" SelectionChanged="ViewBox_SelectionChanged"/>
+                    </Grid>
+
+                    <!-- Statistics -->
+                    <Grid DockPanel.Dock="Bottom" x:Name="StatsGrid" Margin="0,14,0,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                            <ColumnDefinition/>
+                        </Grid.ColumnDefinitions>
+                    </Grid>
+
+                    <Grid>
+                        <!-- One graph per logical processor (Expanded) -->
+                        <UniformGrid x:Name="CoreGrid"/>
+                        <!-- One graph for the whole device (Combined, and every other device) -->
+                        <ui:LineGraph x:Name="BigGraph" Visibility="Collapsed" GridColumns="10" GridRows="6" VisibleSamples="120"/>
+                    </Grid>
+                </DockPanel>
+            </Border>
+        </Grid>
+    </DockPanel>
+</UserControl>

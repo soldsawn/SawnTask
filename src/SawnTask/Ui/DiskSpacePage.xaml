@@ -1,0 +1,141 @@
+<UserControl x:Class="SawnTask.Ui.DiskSpacePage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:SawnTask.Ui"
+             Foreground="{DynamicResource Fg}">
+    <UserControl.Resources>
+        <!-- The "% of parent" bar used in the tree and the file-type list. -->
+        <DataTemplate x:Key="PercentBar">
+            <Grid Margin="4,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="72"/>
+                    <ColumnDefinition/>
+                </Grid.ColumnDefinitions>
+                <Border Background="{DynamicResource BarTrack}" Height="12" Width="70" HorizontalAlignment="Left" CornerRadius="2">
+                    <Border Background="#4FC3F7" Width="{Binding BarWidth}" HorizontalAlignment="Left" CornerRadius="2"/>
+                </Border>
+                <TextBlock Grid.Column="1" Text="{Binding PercentText}" HorizontalAlignment="Right" Margin="0,0,4,0"/>
+            </Grid>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <DockPanel Margin="15,10,15,10">
+        <!-- Title and toolbar -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock Text="{DynamicResource Disk.Title}" Style="{StaticResource PageTitle}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <Button x:Name="RecycleBtn" Content="{DynamicResource Disk.Recycle}" Margin="0,0,14,0" Click="Recycle_Click"
+                        ToolTip="{DynamicResource Disk.RecycleTip}"/>
+                <ComboBox x:Name="DriveBox" Width="290" Margin="0,0,8,0"/>
+                <Button x:Name="ScanBtn" Content="{DynamicResource Disk.Scan}" Click="Scan_Click"/>
+                <Button x:Name="StopBtn" Content="{DynamicResource Disk.Stop}" Margin="6,0,0,0" IsEnabled="False" Click="Stop_Click"/>
+                <Button Content="{DynamicResource Disk.Folder}" Margin="6,0,0,0" Click="ChooseFolder_Click"/>
+                <Button x:Name="AdminBtn" Content="{DynamicResource Disk.Admin}" Margin="6,0,0,0" Click="RestartAdmin_Click"
+                        ToolTip="{DynamicResource Disk.AdminTip}"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Progress -->
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <ProgressBar x:Name="ScanProgress" Height="6" Background="{DynamicResource BarTrack}" Foreground="#4FC3F7" BorderThickness="0"/>
+            <TextBlock x:Name="StatusLine" Foreground="{DynamicResource Dim}" Margin="0,5,0,0" TextTrimming="CharacterEllipsis"
+                       Text="{DynamicResource Disk.Pick}"/>
+        </StackPanel>
+
+        <TextBlock DockPanel.Dock="Bottom" Style="{StaticResource Note}"
+                   Text="{DynamicResource Disk.Note}"/>
+
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="330"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- The tree -->
+            <DataGrid x:Name="TreeGrid" CanUserSortColumns="False" MouseDoubleClick="TreeGrid_MouseDoubleClick"
+                      EnableRowVirtualization="True" VirtualizingPanel.VirtualizationMode="Recycling"
+                      PreviewKeyDown="Grid_PreviewKeyDown" GotKeyboardFocus="Grid_GotFocus">
+                <DataGrid.ContextMenu>
+                    <ContextMenu>
+                        <MenuItem Header="{DynamicResource Disk.OpenExplorer}" Click="OpenFolder_Click"/>
+                        <MenuItem Header="{DynamicResource Disk.CopyPath}" Click="CopyPath_Click"/>
+                        <MenuItem Header="{DynamicResource Disk.ScanThis}" Click="ScanThis_Click"/>
+                        <Separator/>
+                        <MenuItem Header="{DynamicResource Disk.ExpandLargest}" Click="ExpandLargest_Click"/>
+                        <Separator/>
+                        <MenuItem Header="{DynamicResource Disk.MoveToRecycle}" InputGestureText="Del" Click="RecycleFolder_Click"/>
+                    </ContextMenu>
+                </DataGrid.ContextMenu>
+                <DataGrid.Columns>
+                    <DataGridTemplateColumn ui:LocHeader.Key="Col.Name" Width="*" MinWidth="220">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <StackPanel Orientation="Horizontal" Margin="{Binding Indent}">
+                                    <TextBlock Text="{Binding Glyph}" Width="16" TextAlignment="Center" VerticalAlignment="Center"
+                                               Background="Transparent" Cursor="Hand" FontSize="13" Foreground="{DynamicResource Dim}"
+                                               MouseLeftButtonDown="Toggle_Click"/>
+                                    <TextBlock Text="{Binding Icon}" Foreground="{DynamicResource Folder}" Margin="2,0,6,0" VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Name}" VerticalAlignment="Center" ToolTip="{Binding FullPath}"/>
+                                </StackPanel>
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn ui:LocHeader.Key="Col.Size" Binding="{Binding SizeText}" Width="80" ElementStyle="{StaticResource Num}"/>
+                    <DataGridTemplateColumn ui:LocHeader.Key="Col.PctParent" Width="130" MinWidth="130" CellTemplate="{StaticResource PercentBar}"/>
+                    <DataGridTextColumn ui:LocHeader.Key="Col.OnDisk" Binding="{Binding AllocatedText}" Width="80" ElementStyle="{StaticResource Num}"/>
+                    <DataGridTextColumn ui:LocHeader.Key="Col.Files" Binding="{Binding FilesText}" Width="75" ElementStyle="{StaticResource Num}"/>
+                    <DataGridTextColumn ui:LocHeader.Key="Col.Folders" Binding="{Binding FoldersText}" Width="62" ElementStyle="{StaticResource Num}"/>
+                    <DataGridTextColumn ui:LocHeader.Key="Col.Changed" Binding="{Binding Modified}" Width="82"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Largest files and file types -->
+            <Grid Grid.Column="2">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <TextBlock Text="{DynamicResource Disk.LargestFiles}" Style="{StaticResource CardTitle}" Margin="0,0,0,4"/>
+                <DataGrid x:Name="FilesGrid" Grid.Row="1" MouseDoubleClick="FilesGrid_MouseDoubleClick"
+                          PreviewKeyDown="Grid_PreviewKeyDown" GotKeyboardFocus="Grid_GotFocus">
+                    <DataGrid.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="{DynamicResource Disk.OpenFileLocation}" Click="OpenFileLocation_Click"/>
+                            <MenuItem Header="{DynamicResource Disk.CopyPath}" Click="CopyFilePath_Click"/>
+                            <Separator/>
+                            <MenuItem Header="{DynamicResource Disk.MoveToRecycle}" InputGestureText="Del" Click="RecycleFile_Click"/>
+                        </ContextMenu>
+                    </DataGrid.ContextMenu>
+                    <DataGrid.Columns>
+                        <DataGridTextColumn ui:LocHeader.Key="Col.File" Binding="{Binding Name}" Width="*"/>
+                        <DataGridTextColumn ui:LocHeader.Key="Col.Size" Binding="{Binding SizeText}" SortMemberPath="Size" Width="80" ElementStyle="{StaticResource Num}"/>
+                        <DataGridTextColumn ui:LocHeader.Key="Col.Changed" Binding="{Binding Modified}" Width="80"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+                <TextBlock Grid.Row="2" Text="{DynamicResource Disk.FileTypes}" Style="{StaticResource CardTitle}" Margin="0,10,0,4"/>
+                <DataGrid x:Name="TypesGrid" Grid.Row="3">
+                    <DataGrid.Columns>
+                        <DataGridTextColumn ui:LocHeader.Key="Col.Type" Binding="{Binding Extension}" Width="*"/>
+                        <DataGridTemplateColumn ui:LocHeader.Key="Col.Share" Width="105" SortMemberPath="Size">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="4,0">
+                                        <Border Background="{DynamicResource BarTrack}" Height="12" Width="50" HorizontalAlignment="Left" CornerRadius="2">
+                                            <Border Background="#CE93D8" Width="{Binding BarWidth}" HorizontalAlignment="Left" CornerRadius="2"/>
+                                        </Border>
+                                        <TextBlock Text="{Binding Percent, StringFormat={}{0:0.0}%}" HorizontalAlignment="Right"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn ui:LocHeader.Key="Col.Size" Binding="{Binding SizeText}" SortMemberPath="Size" Width="80" ElementStyle="{StaticResource Num}"/>
+                        <DataGridTextColumn ui:LocHeader.Key="Col.Files" Binding="{Binding Count, StringFormat={}{0:N0}}" Width="65" ElementStyle="{StaticResource Num}"/>
+                    </DataGrid.Columns>
+                </DataGrid>
+            </Grid>
+        </Grid>
+    </DockPanel>
+</UserControl>
