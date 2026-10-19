@@ -23,6 +23,7 @@ public partial class DiskBenchPage : UserControl
     List<StorageDevices.Disk> disks = [];
     CancellationTokenSource? cancel;
     bool running, loading;
+    DiskVerdict? verdict;
     string statusKey = "DB.Idle";
     object?[] statusArgs = [];
 
@@ -61,6 +62,7 @@ public partial class DiskBenchPage : UserControl
         ShowStatus();
         UpdateCards();
         BuildTable();
+        ShowVerdict();
     }
 
     // Stops a running test (the window is closing); the test file goes with it.
@@ -145,6 +147,8 @@ public partial class DiskBenchPage : UserControl
         }
 
         results.Clear();
+        verdict = null;
+        ShowVerdict();
         live.Clear();
         Graph.InvalidateVisual();
         UpdateCards();
@@ -161,7 +165,12 @@ public partial class DiskBenchPage : UserControl
                 r => Dispatcher.BeginInvoke(() => OnResult(r)),
                 token));
             SetStatus(token.IsCancellationRequested ? "DB.Stopped" : "DB.Done");
-            if (!token.IsCancellationRequested) Progress.Value = 1;
+            if (!token.IsCancellationRequested)
+            {
+                Progress.Value = 1;
+                if (Get(SeqTest, false) is { } seq) verdict = DiskVerdict.Evaluate(drive.Disk?.Bus ?? "", drive.Disk?.Kind ?? "", seq.MBps);
+                ShowVerdict();
+            }
         }
         catch (BenchException ex)
         {
@@ -236,6 +245,27 @@ public partial class DiskBenchPage : UserControl
         SeqWriteValue.Text = Speed(Get(SeqTest, true));
         RndReadValue.Text = Speed(Get(RndTest, false));
         RndWriteValue.Text = Speed(Get(RndTest, true));
+    }
+
+    void ShowVerdict()
+    {
+        VerdictCard.Visibility = verdict is null ? Visibility.Collapsed : Visibility.Visible;
+        if (verdict is null) return;
+        var color = verdict.Level switch
+        {
+            VerdictLevel.Fast => Color.FromRgb(0x66, 0xBB, 0x6A),
+            VerdictLevel.Normal => Color.FromRgb(0x4F, 0xC3, 0xF7),
+            _ => Color.FromRgb(0xFF, 0xA7, 0x26),
+        };
+        VerdictTitle.Text = $"{Loc.T("DB.Verdict")}: {Loc.T("DB.Level." + verdict.Level)}";
+        VerdictTitle.Foreground = new SolidColorBrush(color);
+        string kind = Loc.T(verdict.ClassKey);
+        VerdictText.Text = verdict.Level switch
+        {
+            VerdictLevel.Fast => Loc.F("DB.V.Fast", kind),
+            VerdictLevel.Normal => Loc.F("DB.V.Normal", kind),
+            _ => Loc.F("DB.V.Low", kind, Loc.T(verdict.HintKey!)),
+        };
     }
 
     BenchResult? Get(string test, bool write) => results.GetValueOrDefault((test, write));

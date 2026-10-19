@@ -417,4 +417,19 @@
 <sys:String x:Key="DB.Col.WriteIops">Yazma IOPS</sys:String>
 <sys:String x:Key="DB.Col.WriteLat">Yazma gecikmesi</sys:String>
 <sys:String x:Key="DB.Note">SEQ1M Q8T1: 1 MiB'lık parçalar, aynı anda 8 istek. RND4K Q1T1: rastgele yerlerde 4 KiB'lık parçalar, aynı anda tek istek. Windows dosya önbelleği devre dışı bırakılır, yani sayılar diskin kendi hızıdır. Test sırasında diski kullanan başka programlar sonucu düşürür.</sys:String>
+<sys:String x:Key="DB.Verdict">Yorum</sys:String>
+<sys:String x:Key="DB.Level.Fast">Çok iyi</sys:String>
+<sys:String x:Key="DB.Level.Normal">Normal</sys:String>
+<sys:String x:Key="DB.Level.Low">Beklenenin altında</sys:String>
+<sys:String x:Key="DB.Class.Nvme">bir NVMe SSD</sys:String>
+<sys:String x:Key="DB.Class.Sata">bir SATA SSD</sys:String>
+<sys:String x:Key="DB.Class.Hdd">bir sabit disk</sys:String>
+<sys:String x:Key="DB.Class.Usb">bir USB disk</sys:String>
+<sys:String x:Key="DB.V.Fast">Bu hız, {0} için en üst aralıkta.</sys:String>
+<sys:String x:Key="DB.V.Normal">Bu hız, {0} için normal.</sys:String>
+<sys:String x:Key="DB.V.Low">Bu hız, {0} için beklenenden yavaş. {1}</sys:String>
+<sys:String x:Key="DB.Hint.Nvme">Olası sebepler: disk neredeyse dolu, başka bir program diski kullanıyordu, bilgisayar güç tasarrufu modundaydı ya da disk daha az PCIe hattı olan bir yuvada.</sys:String>
+<sys:String x:Key="DB.Hint.Sata">Olası sebepler: disk neredeyse dolu, başka bir program diski kullanıyordu ya da denetleyici eski bir moda (AHCI yerine IDE) ayarlı.</sys:String>
+<sys:String x:Key="DB.Hint.Hdd">Sabit diskler küçük dosyalarda yavaştır, dolu bir disk daha da yavaştır. Bir SSD çok daha hızlı hissettirir.</sys:String>
+<sys:String x:Key="DB.Hint.Usb">USB 2.0 portu ya da kablosu hızı yaklaşık 40 MB/sn ile sınırlar. USB 3 port ve kablo dene, başka kopyalamaların bitmesini bekle.</sys:String>
 </ResourceDictionary>

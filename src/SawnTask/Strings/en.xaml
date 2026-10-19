@@ -417,4 +417,19 @@
 <sys:String x:Key="DB.Col.WriteIops">Write IOPS</sys:String>
 <sys:String x:Key="DB.Col.WriteLat">Write latency</sys:String>
 <sys:String x:Key="DB.Note">SEQ1M Q8T1: 1 MiB pieces, 8 requests at once. RND4K Q1T1: 4 KiB pieces at random places, one request at a time. The Windows file cache is bypassed, so the numbers are the disk's own. Other programs using the disk during the test lower the result.</sys:String>
+<sys:String x:Key="DB.Verdict">Verdict</sys:String>
+<sys:String x:Key="DB.Level.Fast">Excellent</sys:String>
+<sys:String x:Key="DB.Level.Normal">Normal</sys:String>
+<sys:String x:Key="DB.Level.Low">Below expected</sys:String>
+<sys:String x:Key="DB.Class.Nvme">an NVMe SSD</sys:String>
+<sys:String x:Key="DB.Class.Sata">a SATA SSD</sys:String>
+<sys:String x:Key="DB.Class.Hdd">a hard disk</sys:String>
+<sys:String x:Key="DB.Class.Usb">a USB drive</sys:String>
+<sys:String x:Key="DB.V.Fast">This is in the top speed range for {0}.</sys:String>
+<sys:String x:Key="DB.V.Normal">This is a normal speed for {0}.</sys:String>
+<sys:String x:Key="DB.V.Low">This is slower than expected for {0}. {1}</sys:String>
+<sys:String x:Key="DB.Hint.Nvme">Possible reasons: the disk is nearly full, another program was using it, the PC was on power saving, or the disk sits in a slot with fewer PCIe lanes.</sys:String>
+<sys:String x:Key="DB.Hint.Sata">Possible reasons: the disk is nearly full, another program was using it, or the controller is set to an old mode (IDE instead of AHCI).</sys:String>
+<sys:String x:Key="DB.Hint.Hdd">Hard disks are slow with small files, and a nearly full disk is slower still. An SSD would feel much faster.</sys:String>
+<sys:String x:Key="DB.Hint.Usb">A USB 2.0 port or cable limits the speed to about 40 MB/s. Try a USB 3 port and cable, and wait for other copies to finish.</sys:String>
 </ResourceDictionary>
