@@ -18,7 +18,7 @@
         <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
             <TextBlock Text="{DynamicResource DB.Title}" Style="{StaticResource PageTitle}"/>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
-                <ComboBox x:Name="DriveBox" Width="450" Margin="0,0,8,0"/>
+                <ComboBox x:Name="DriveBox" Width="450" Margin="0,0,8,0" SelectionChanged="Drive_Changed"/>
                 <ComboBox x:Name="ProfileBox" Width="150" Margin="0,0,8,0" SelectionChanged="Profile_Changed"/>
                 <Button x:Name="StartBtn" Content="{DynamicResource DB.Start}" Padding="18,4" Click="Start_Click"/>
                 <Button x:Name="StopBtn" Content="{DynamicResource DB.Stop}" Padding="18,4" Margin="6,0,0,0" IsEnabled="False" Click="Stop_Click"/>
@@ -31,7 +31,7 @@
             <TextBlock x:Name="StatusLine" Foreground="{DynamicResource Dim}" Margin="0,5,0,0" TextWrapping="Wrap"/>
         </StackPanel>
 
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="PageScroll" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <!-- The four everyday numbers -->
                 <UniformGrid Columns="4" Margin="-5,0">
@@ -78,7 +78,7 @@
                     <StackPanel>
                         <TextBlock x:Name="HealthTitle" Style="{StaticResource CardTitle}"/>
                         <TextBlock x:Name="HealthSummary" TextWrapping="Wrap" Margin="0,6,0,0"/>
-                        <Grid x:Name="HealthGrid" Margin="0,10,0,0"/>
+                        <UniformGrid x:Name="HealthGrid" Columns="4" Margin="0,10,0,0"/>
                     </StackPanel>
                 </Border>
 
@@ -139,8 +139,12 @@
                 <!-- Earlier tests (filled from the history file) -->
                 <Border x:Name="HistoryCard" Style="{StaticResource Card}" Padding="14" Visibility="Collapsed">
                     <StackPanel>
-                        <TextBlock x:Name="HistoryTitle" Style="{StaticResource CardTitle}"/>
+                        <Grid>
+                            <TextBlock x:Name="HistoryTitle" Style="{StaticResource CardTitle}" Text="{DynamicResource DB.History}"/>
+                            <Button Content="{DynamicResource DB.History.Clear}" HorizontalAlignment="Right" Padding="12,2" Click="ClearHistory_Click"/>
+                        </Grid>
                         <Grid x:Name="HistoryGrid" Margin="0,8,0,0"/>
+                        <TextBlock Style="{StaticResource Note}" Text="{DynamicResource DB.HistoryHint}"/>
                     </StackPanel>
                 </Border>
 

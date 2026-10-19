@@ -1,6 +1,8 @@
+using System.Globalization;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Documents;
 using System.Windows.Media;
 using SawnTask.Core;
 using SawnTask.Native;
@@ -24,6 +26,10 @@ public partial class DiskBenchPage : UserControl
     CancellationTokenSource? cancel;
     bool running, loading;
     DiskVerdict? verdict;
+    DiskHealth? health;
+    string? healthRoot;
+    bool healthTried; // the report was asked for (health stays null when the disk would not give it)
+    int healthVersion;
     string statusKey = "DB.Idle";
     object?[] statusArgs = [];
 
@@ -63,6 +69,8 @@ public partial class DiskBenchPage : UserControl
         UpdateCards();
         BuildTable();
         ShowVerdict();
+        ShowHealth();
+        BuildHistory();
     }
 
     // Stops a running test (the window is closing); the test file goes with it.
@@ -127,7 +135,7 @@ public partial class DiskBenchPage : UserControl
     {
         long size = SizeBox.SelectedItem is ComboBoxItem { Tag: long s } ? s : 1L << 30;
         int passes = PassBox.SelectedItem is ComboBoxItem { Tag: int p } ? p : 3;
-        return new BenchOptions(size, passes, passes switch { 1 => 2, 2 or 3 => 3, _ => 5 });
+        return new BenchOptions(size, passes, passes switch { 1 => 2, 2 or 3 => 3, _ => 5 }, passes >= 5 ? 2 : 1);
     }
 
     // ---- running ----
@@ -170,6 +178,19 @@ public partial class DiskBenchPage : UserControl
                 Progress.Value = 1;
                 if (Get(SeqTest, false) is { } seq) verdict = DiskVerdict.Evaluate(drive.Disk?.Bus ?? "", drive.Disk?.Kind ?? "", seq.MBps);
                 ShowVerdict();
+                if (Get(SeqTest, false) is { } seqRead && Get(SeqTest, true) is { } seqWrite
+                    && Get(RndTest, false) is { } rndRead && Get(RndTest, true) is { } rndWrite)
+                {
+                    BenchHistory.Add(new BenchRecord(DateTime.Now, drive.Root.TrimEnd('\\'), drive.Model, options.FileBytes, options.Passes,
+                        seqRead.MBps, seqWrite.MBps, rndRead.MBps, rndWrite.MBps));
+                    BuildHistory();
+                }
+                // For --snapshot: SAWNTASK_BENCH_SCROLL=1 shows the bottom of the page (the history).
+                if (Environment.GetEnvironmentVariable("SAWNTASK_BENCH_SCROLL") == "1")
+                {
+                    PageScroll.UpdateLayout();
+                    PageScroll.ScrollToEnd();
+                }
             }
         }
         catch (BenchException ex)
@@ -183,6 +204,7 @@ public partial class DiskBenchPage : UserControl
         finally
         {
             SetRunning(false);
+            _ = LoadHealth(); // the temperature and written total have moved on
             cancel.Dispose();
             cancel = null;
         }
@@ -245,6 +267,139 @@ public partial class DiskBenchPage : UserControl
         SeqWriteValue.Text = Speed(Get(SeqTest, true));
         RndReadValue.Text = Speed(Get(RndTest, false));
         RndWriteValue.Text = Speed(Get(RndTest, true));
+    }
+
+    // ---- earlier tests ----
+
+    void ClearHistory_Click(object sender, RoutedEventArgs e)
+    {
+        BenchHistory.Clear();
+        BuildHistory();
+    }
+
+    // The last ten tests, newest first. Each number carries an arrow when it differs by 3% or more
+    // from the test before it on the same disk.
+    void BuildHistory()
+    {
+        var all = BenchHistory.Load();
+        HistoryCard.Visibility = all.Count == 0 ? Visibility.Collapsed : Visibility.Visible;
+        HistoryGrid.Children.Clear();
+        HistoryGrid.RowDefinitions.Clear();
+        HistoryGrid.ColumnDefinitions.Clear();
+        if (all.Count == 0) return;
+
+        double[] widths = [1.5, 2.6, 1.2, 1.4, 1.4, 1.4, 1.4];
+        foreach (double w in widths) HistoryGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(w, GridUnitType.Star) });
+        var culture = Appearance.Language == "tr" ? new CultureInfo("tr-TR") : CultureInfo.InvariantCulture;
+
+        TextBlock Cell(int row, int col, bool header = false)
+        {
+            var block = new TextBlock { Margin = new Thickness(0, 3, 8, 3), TextTrimming = TextTrimming.CharacterEllipsis };
+            if (header) block.SetResourceReference(TextBlock.ForegroundProperty, "Dim");
+            if (col >= 3) block.HorizontalAlignment = HorizontalAlignment.Right;
+            Grid.SetRow(block, row);
+            Grid.SetColumn(block, col);
+            HistoryGrid.Children.Add(block);
+            return block;
+        }
+
+        HistoryGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+        string[] headers = ["DB.HCol.Date", "DB.HCol.Disk", "DB.HCol.Size", "DB.SeqRead", "DB.SeqWrite", "DB.RndRead", "DB.RndWrite"];
+        for (int c = 0; c < headers.Length; c++) Cell(0, c, header: true).Text = Loc.T(headers[c]);
+
+        for (int i = 0; i < Math.Min(10, all.Count); i++)
+        {
+            var r = all[i];
+            var before = all.Skip(i + 1).FirstOrDefault(x => x.Model == r.Model && x.Drive == r.Drive);
+            HistoryGrid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            Cell(i + 1, 0).Text = r.Time.ToString("g", culture);
+            Cell(i + 1, 1).Text = $"{r.Drive}  {r.Model}";
+            Cell(i + 1, 2).Text = $"{Fmt.Bytes(r.FileBytes)} × {r.Passes}";
+            double[] now = [r.SeqRead, r.SeqWrite, r.RndRead, r.RndWrite];
+            double[]? old = before is null ? null : [before.SeqRead, before.SeqWrite, before.RndRead, before.RndWrite];
+            for (int c = 0; c < 4; c++)
+            {
+                var cell = Cell(i + 1, 3 + c);
+                cell.FontFamily = new FontFamily("Consolas");
+                cell.Inlines.Add(new Run(now[c] >= 100 ? $"{now[c]:0}" : $"{now[c]:0.0}"));
+                if (old is null || old[c] <= 0) continue;
+                double change = (now[c] - old[c]) / old[c] * 100;
+                if (Math.Abs(change) < 3) continue;
+                cell.Inlines.Add(new Run($"  {(change > 0 ? "▲" : "▼")}{Math.Abs(change):0}%")
+                {
+                    Foreground = new SolidColorBrush(change > 0 ? Color.FromRgb(0x66, 0xBB, 0x6A) : Color.FromRgb(0xEF, 0x53, 0x50)),
+                });
+            }
+        }
+    }
+
+    // ---- disk health ----
+
+    void Drive_Changed(object sender, SelectionChangedEventArgs e) => _ = LoadHealth();
+
+    async Task LoadHealth()
+    {
+        int version = ++healthVersion;
+        string? root = (DriveBox.SelectedItem as ComboBoxItem)?.Tag is DriveEntry d ? d.Root : null;
+        if (root != healthRoot) (health, healthTried, healthRoot) = (null, false, root); // another drive: forget the old report
+        ShowHealth();
+        if ((DriveBox.SelectedItem as ComboBoxItem)?.Tag is not DriveEntry { Disk: { } disk }) return;
+        var report = await Task.Run(() => DiskHealthReader.Read(disk.Number, disk.Bus));
+        if (version != healthVersion) return; // the selection moved on while reading
+        (health, healthTried) = (report, true);
+        ShowHealth();
+    }
+
+    void ShowHealth()
+    {
+        bool known = (DriveBox.SelectedItem as ComboBoxItem)?.Tag is DriveEntry { Disk: not null };
+        HealthCard.Visibility = known && healthTried ? Visibility.Visible : Visibility.Collapsed;
+        HealthGrid.Children.Clear();
+        if (!known || !healthTried) return;
+        if (health is null)
+        {
+            HealthTitle.Text = Loc.T("DB.Health");
+            HealthTitle.SetResourceReference(TextBlock.ForegroundProperty, "Fg");
+            HealthSummary.Text = Loc.T("DB.H.Unavailable");
+            return;
+        }
+
+        var (level, reasons) = health.Assess();
+        HealthTitle.Text = $"{Loc.T("DB.Health")}: {Loc.T("DB.Health." + level)}";
+        HealthTitle.Foreground = new SolidColorBrush(level switch
+        {
+            HealthLevel.Good => Color.FromRgb(0x66, 0xBB, 0x6A),
+            HealthLevel.Caution => Color.FromRgb(0xFF, 0xA7, 0x26),
+            _ => Color.FromRgb(0xEF, 0x53, 0x50),
+        });
+        HealthSummary.Text = reasons.Count == 0
+            ? Loc.T("DB.H.Ok")
+            : string.Join("\n", reasons.Select(r => "• " + Loc.F(r.Key, r.Args)));
+
+        void Item(string labelKey, string? value)
+        {
+            if (value is null) return;
+            var label = new TextBlock { Text = Loc.T(labelKey), FontSize = 12 };
+            label.SetResourceReference(TextBlock.ForegroundProperty, "Dim");
+            HealthGrid.Children.Add(new StackPanel
+            {
+                Margin = new Thickness(0, 0, 12, 8),
+                Children = { label, new TextBlock { Text = value, FontSize = 16, FontFamily = new FontFamily("Consolas") } },
+            });
+        }
+        static string Amount(double tb) => tb >= 1 ? $"{tb:0.00} TB" : $"{tb * 1000:0} GB";
+        var h = health;
+        Item("DB.HL.Temp", h.TemperatureC is int t ? $"{t} °C" : null);
+        Item("DB.HL.Used", h.PercentUsed is int used ? $"{used}%" : null);
+        Item("DB.HL.Spare", h.SpareLeftPercent is int spare ? $"{spare}%" : null);
+        Item("DB.HL.Written", h.TerabytesWritten is double w ? Amount(w) : null);
+        Item("DB.HL.Read", h.TerabytesRead is double r ? Amount(r) : null);
+        Item("DB.HL.Hours", h.PowerOnHours is long hours ? Loc.F("DB.HL.Days", hours, hours / 24.0) : null);
+        Item("DB.HL.Cycles", h.PowerCycles is long cycles ? $"{cycles:N0}" : null);
+        Item("DB.HL.Unsafe", h.UnsafeShutdowns is long unsafeShutdowns ? $"{unsafeShutdowns:N0}" : null);
+        Item("DB.HL.Media", h.MediaErrors is long media ? $"{media:N0}" : null);
+        Item("DB.HL.Realloc", h.ReallocatedSectors is long realloc ? $"{realloc:N0}" : null);
+        Item("DB.HL.Pending", h.PendingSectors is long pending ? $"{pending:N0}" : null);
     }
 
     void ShowVerdict()

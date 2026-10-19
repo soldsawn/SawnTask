@@ -8,14 +8,15 @@ namespace SawnTask.Core;
 public enum BenchProfile { Quick, Normal, Thorough }
 
 // FileBytes: size of the test file. Passes: every measurement is repeated and the best pass counts.
-// RandomSeconds: how long one random pass runs (a sequential pass moves the whole file once).
-public sealed record BenchOptions(long FileBytes, int Passes, double RandomSeconds)
+// RandomSeconds: how long one random pass runs. SequentialSeconds: the least a sequential pass runs (it moves the
+// whole file once and goes round again if that was quicker, so a fast disk is still measured long enough).
+public sealed record BenchOptions(long FileBytes, int Passes, double RandomSeconds, double SequentialSeconds)
 {
     public static BenchOptions For(BenchProfile profile) => profile switch
     {
-        BenchProfile.Quick => new BenchOptions(256L << 20, 1, 2),
-        BenchProfile.Thorough => new BenchOptions(4L << 30, 5, 5),
-        _ => new BenchOptions(1L << 30, 3, 3),
+        BenchProfile.Quick => new BenchOptions(256L << 20, 1, 2, 1),
+        BenchProfile.Thorough => new BenchOptions(4L << 30, 5, 5, 2),
+        _ => new BenchOptions(1L << 30, 3, 3, 1),
     };
 }
 
@@ -102,7 +103,7 @@ public static class DiskBench
                         {
                             onProgress(new BenchProgress(step, steps, "run", test.Name, write, pass, options.Passes, 0));
                             var r = Measure(handle, test.Sequential, test.BlockBytes, test.QueueDepth, write, options.FileBytes,
-                                options.RandomSeconds, mbps => onProgress(new BenchProgress(step, steps, "run", test.Name, write, pass, options.Passes, mbps)), cancel);
+                                test.Sequential ? options.SequentialSeconds : options.RandomSeconds, mbps => onProgress(new BenchProgress(step, steps, "run", test.Name, write, pass, options.Passes, mbps)), cancel);
                             if (r is { } m && (best is null || m.mbps > best.MBps))
                                 best = new BenchResult(test.Name, write, m.mbps, m.iops, m.latencyUs);
                         }
@@ -119,7 +120,7 @@ public static class DiskBench
         return results;
     }
 
-    // One pass: queueDepth threads share the work until the file has been moved once (sequential)
+    // One pass: queueDepth threads share the work until the file has been moved once and the time is up (sequential)
     // or the time is up (random). Returns null if cancelled before anything was done.
     static unsafe (double mbps, double iops, double latencyUs)? Measure(SafeFileHandle handle, bool sequential, int block, int queueDepth,
         bool write, long fileBytes, double seconds, Action<double> live, CancellationToken cancel)
@@ -152,7 +153,8 @@ public static class DiskBench
                         if (sequential)
                         {
                             index = Interlocked.Increment(ref next);
-                            if (index >= blocks) break;
+                            if (index >= blocks && clock.Elapsed.TotalSeconds >= limit) break;
+                            index %= blocks;
                         }
                         else
                         {

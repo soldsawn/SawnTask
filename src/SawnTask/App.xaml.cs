@@ -74,6 +74,23 @@ public partial class App : Application
             return;
         }
 
+        // "SawnTask.exe --health out.txt": what every disk says about its own health.
+        if (e.Args.Length >= 2 && e.Args[0] == "--health")
+        {
+            using (var output = new StreamWriter(e.Args[1]))
+                foreach (var disk in Native.StorageDevices.List())
+                {
+                    output.WriteLine($"Disk {disk.Number}: {disk.Model} ({disk.Bus} {disk.Kind})");
+                    var h = Native.DiskHealthReader.Read(disk.Number, disk.Bus);
+                    if (h is null) { output.WriteLine("  health report not available"); continue; }
+                    var (level, reasons) = h.Assess();
+                    output.WriteLine($"  {level}: {string.Join("; ", reasons.Select(r => r.Key))}");
+                    output.WriteLine($"  {h}");
+                }
+            Shutdown(0);
+            return;
+        }
+
         if (e.Args.Length >= 3 && e.Args[0] == "--disk-scan")
         {
             int code;
