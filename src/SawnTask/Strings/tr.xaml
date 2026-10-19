@@ -253,7 +253,10 @@
 <sys:String x:Key="Bar.OpenRecording">Kaydı aç…</sys:String>
 <sys:String x:Key="Bar.BackToLive">Canlıya dön</sys:String>
 <sys:String x:Key="Bar.Status">{0}/{1} kaynak sağlıklı  •  {2} işlem  •  {3} iş parçacığı  •  Nesil {4}  •  son ölçüm {5:0} ms</sys:String>
-<sys:String x:Key="Rec.Saved">{0} örnek şuraya kaydedildi:\n{1}</sys:String>
+<sys:String x:Key="Rec.Saved">{0} örnek ({1}) şuraya kaydedildi:\n{2}</sys:String>
+<sys:String x:Key="Rec.OpenFolder">Klasörü aç</sys:String>
+<sys:String x:Key="Msg.Yes">Evet</sys:String>
+<sys:String x:Key="Msg.No">Hayır</sys:String>
 <sys:String x:Key="Rec.SavedTitle">Kayıt kaydedildi</sys:String>
 <sys:String x:Key="Rec.OpenFailed">Kayıt açılamadı</sys:String>
 <sys:String x:Key="Rec.Filter">SawnTask kaydı</sys:String>

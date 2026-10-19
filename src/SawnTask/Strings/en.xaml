@@ -253,7 +253,10 @@
 <sys:String x:Key="Bar.OpenRecording">Open recording…</sys:String>
 <sys:String x:Key="Bar.BackToLive">Back to live</sys:String>
 <sys:String x:Key="Bar.Status">{0}/{1} sources healthy  •  {2} processes  •  {3} threads  •  Generation {4}  •  last tick {5:0} ms</sys:String>
-<sys:String x:Key="Rec.Saved">Saved {0} samples to\n{1}</sys:String>
+<sys:String x:Key="Rec.Saved">Saved {0} samples ({1}) to\n{2}</sys:String>
+<sys:String x:Key="Rec.OpenFolder">Open folder</sys:String>
+<sys:String x:Key="Msg.Yes">Yes</sys:String>
+<sys:String x:Key="Msg.No">No</sys:String>
 <sys:String x:Key="Rec.SavedTitle">Recording saved</sys:String>
 <sys:String x:Key="Rec.OpenFailed">Could not open the recording</sys:String>
 <sys:String x:Key="Rec.Filter">SawnTask recording</sys:String>

@@ -319,10 +319,10 @@ public partial class PowerPlansPage : UserControl
         var owner = Window.GetWindow(this);
         if (plan.Active)
         {
-            MessageBox.Show(owner, Loc.T("PP.DeleteActive"), Loc.T("PP.Delete"), MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemedMessageBox.Show(owner, Loc.T("PP.DeleteActive"), Loc.T("PP.Delete"), MessageBoxButton.OK, MessageBoxImage.Information);
             return;
         }
-        if (MessageBox.Show(owner, Loc.F("PP.DeleteAsk", plan.Name), Loc.T("PP.Delete"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
+        if (ThemedMessageBox.Show(owner, Loc.F("PP.DeleteAsk", plan.Name), Loc.T("PP.Delete"), MessageBoxButton.YesNo, MessageBoxImage.Question) != MessageBoxResult.Yes) return;
         try
         {
             PowerPlans.Delete(plan.Id);
@@ -344,5 +344,5 @@ public partial class PowerPlansPage : UserControl
     }
 
     void Fail(Exception ex) =>
-        MessageBox.Show(Window.GetWindow(this), ex.Message, Loc.T("PP.Title"), MessageBoxButton.OK, MessageBoxImage.Warning);
+        ThemedMessageBox.Show(Window.GetWindow(this), ex.Message, Loc.T("PP.Title"), MessageBoxButton.OK, MessageBoxImage.Warning);
 }

@@ -123,6 +123,16 @@ public partial class App : Application
                 png.Frames.Add(System.Windows.Media.Imaging.BitmapFrame.Create(bitmap));
                 using (var file = File.Create(e.Args[1])) png.Save(file);
 
+                // SAWNTASK_DIALOG=1: also save pictures of two themed message boxes.
+                if (Environment.GetEnvironmentVariable("SAWNTASK_DIALOG") == "1")
+                {
+                    string dialogStem = Path.Combine(Path.GetDirectoryName(e.Args[1])!, Path.GetFileNameWithoutExtension(e.Args[1]));
+                    Ui.ThemedMessageBox.SaveSnapshot(dialogStem + "-dialog1.png", Ui.Loc.F("Rec.Saved", 1234, "00:10:17", @"C:\Users\user\AppData\Local\SawnTask\recordings\rec-20261019-120000.sawn"),
+                        Ui.Loc.T("Rec.SavedTitle"), MessageBoxButton.OK, MessageBoxImage.Information, (Ui.Loc.T("Rec.OpenFolder"), () => { }));
+                    Ui.ThemedMessageBox.SaveSnapshot(dialogStem + "-dialog2.png", Ui.Loc.F("Msg.EndTask", "example.exe", 1234),
+                        Ui.Loc.T("Proc.EndTask"), MessageBoxButton.OKCancel, MessageBoxImage.Warning);
+                }
+
                 // SAWNTASK_SNAPSHOT_EXTRA=1: also save the Processes right-click menu (menus are
                 // separate popup windows, so the window picture never contains them) and two
                 // pictures of the CPU graph 300 ms apart (they differ only if the 60 fps slide works).

@@ -526,13 +526,13 @@ public partial class MainWindow : Window
     // Error texts come from Windows itself (already in the Windows display language).
     void Report(bool ok, string error)
     {
-        if (!ok) MessageBox.Show(this, error, Loc.T("Msg.ActionFailed"), MessageBoxButton.OK, MessageBoxImage.Error);
+        if (!ok) ThemedMessageBox.Show(this, error, Loc.T("Msg.ActionFailed"), MessageBoxButton.OK, MessageBoxImage.Error);
     }
 
     void EndTask_Click(object sender, RoutedEventArgs e)
     {
         if (SelectedProcess() is not ProcessRow row) return;
-        var answer = MessageBox.Show(this, Loc.F("Msg.EndTask", row.Name, row.Pid), Loc.T("Proc.EndTask"),
+        var answer = ThemedMessageBox.Show(this, Loc.F("Msg.EndTask", row.Name, row.Pid), Loc.T("Proc.EndTask"),
             MessageBoxButton.OKCancel, MessageBoxImage.Warning);
         if (answer != MessageBoxResult.OK) return;
         Report(ProcessActions.TryEndTask(row.Key, out string error), error);
@@ -569,11 +569,11 @@ public partial class MainWindow : Window
         }
         catch (UnauthorizedAccessException)
         {
-            MessageBox.Show(this, Loc.F("Startup.NeedsAdmin", item.Name), Loc.T("Startup.Failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.Show(this, Loc.F("Startup.NeedsAdmin", item.Name), Loc.T("Startup.Failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, Loc.T("Startup.Failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
+            ThemedMessageBox.Show(this, ex.Message, Loc.T("Startup.Failed"), MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -721,7 +721,7 @@ public partial class MainWindow : Window
     void SettingsAdmin_Click(object sender, RoutedEventArgs e)
     {
         if (Elevation.Restart("", out bool declined, out string error)) Application.Current.Shutdown();
-        else MessageBox.Show(this, declined ? Loc.T("Disk.ElevateCancelled") : error, Loc.T("Set.Admin"), MessageBoxButton.OK, MessageBoxImage.Information);
+        else ThemedMessageBox.Show(this, declined ? Loc.T("Disk.ElevateCancelled") : error, Loc.T("Set.Admin"), MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
     // ---- update speed, recording, replay ----
@@ -745,7 +745,11 @@ public partial class MainWindow : Window
         {
             recorder.Stop();
             RecordBtn.SetResourceReference(ContentProperty, "Bar.Record");
-            MessageBox.Show(this, Loc.F("Rec.Saved", recorder.FrameCount, recorder.CurrentPath), Loc.T("Rec.SavedTitle"));
+            string saved = recorder.CurrentPath ?? "";
+            var length = DateTime.UtcNow - recordStartedUtc;
+            ThemedMessageBox.Show(this, Loc.F("Rec.Saved", recorder.FrameCount, length.ToString(@"hh\:mm\:ss"), saved), Loc.T("Rec.SavedTitle"),
+                MessageBoxButton.OK, MessageBoxImage.Information,
+                extraButton: (Loc.T("Rec.OpenFolder"), () => System.Diagnostics.Process.Start("explorer.exe", $"/select,\"{saved}\"")));
             return;
         }
         recorder.Start();
@@ -770,7 +774,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            MessageBox.Show(this, ex.Message, Loc.T("Rec.OpenFailed"), MessageBoxButton.OK, MessageBoxImage.Error);
+            ThemedMessageBox.Show(this, ex.Message, Loc.T("Rec.OpenFailed"), MessageBoxButton.OK, MessageBoxImage.Error);
             return;
         }
         if (frames.Count == 0) return;

@@ -165,7 +165,7 @@ public partial class DiskSpacePage : UserControl
     {
         var examples = scanned.DeniedPaths.Take(5).Select(p => "   • " + p);
         string more = scanned.DeniedFolders > 5 ? Loc.F("Disk.ElevateMore", scanned.DeniedFolders - 5) : "";
-        var answer = MessageBox.Show(Window.GetWindow(this),
+        var answer = ThemedMessageBox.Show(Window.GetWindow(this),
             Loc.F("Disk.Elevate", scanned.DeniedFolders, string.Join("\n", examples), more, path),
             Loc.T("Disk.ElevateTitle"), MessageBoxButton.YesNo, MessageBoxImage.Question);
         if (answer == MessageBoxResult.Yes) RestartElevated(path);
@@ -179,7 +179,7 @@ public partial class DiskSpacePage : UserControl
         // The new copy opens on this page and starts scanning the same place by itself.
         string args = scanPath is null ? "--open-disk" : "--open-disk " + Elevation.QuoteForArgs(scanPath);
         if (Elevation.Restart(args, out bool declined, out string error)) Application.Current.Shutdown();
-        else MessageBox.Show(Window.GetWindow(this), declined ? Loc.T("Disk.ElevateCancelled") : error, Loc.T("Disk.ElevateTitle"),
+        else ThemedMessageBox.Show(Window.GetWindow(this), declined ? Loc.T("Disk.ElevateCancelled") : error, Loc.T("Disk.ElevateTitle"),
             MessageBoxButton.OK, MessageBoxImage.Information);
     }
 
@@ -364,14 +364,14 @@ public partial class DiskSpacePage : UserControl
                                                       || path.StartsWith(s + "\\", StringComparison.OrdinalIgnoreCase)))
                      || Path.GetDirectoryName(path) == Path.GetPathRoot(path);
         string warning = risky ? Loc.T("Disk.Risk") : "";
-        return MessageBox.Show(Window.GetWindow(this),
+        return ThemedMessageBox.Show(Window.GetWindow(this),
                    Loc.F("Disk.Confirm", path, Fmt.Bytes(size), contents, warning),
                    Loc.T("Disk.MoveToRecycle"), MessageBoxButton.YesNo, risky ? MessageBoxImage.Warning : MessageBoxImage.Question,
                    MessageBoxResult.No) == MessageBoxResult.Yes;
     }
 
     void Tell(string text) =>
-        MessageBox.Show(Window.GetWindow(this), text, Loc.T("Disk.Title"), MessageBoxButton.OK, MessageBoxImage.Information);
+        ThemedMessageBox.Show(Window.GetWindow(this), text, Loc.T("Disk.Title"), MessageBoxButton.OK, MessageBoxImage.Information);
 
     IntPtr OwnerHandle() => Window.GetWindow(this) is Window w ? new WindowInteropHelper(w).Handle : IntPtr.Zero;
 
@@ -392,7 +392,7 @@ public partial class DiskSpacePage : UserControl
         if (TreeGrid.SelectedItem is not FolderRow { Node: { IsLink: false } node }) return;
         if (node.Denied && !Elevation.IsElevated)
         {
-            var answer = MessageBox.Show(Window.GetWindow(this), Loc.F("Disk.ElevateFolder", node.FullPath),
+            var answer = ThemedMessageBox.Show(Window.GetWindow(this), Loc.F("Disk.ElevateFolder", node.FullPath),
                 Loc.T("Disk.ElevateTitle"), MessageBoxButton.YesNo, MessageBoxImage.Question);
             if (answer == MessageBoxResult.Yes) RestartElevated(node.FullPath);
             return;
