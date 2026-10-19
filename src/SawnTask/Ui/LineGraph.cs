@@ -373,17 +373,51 @@ public sealed class LineGraph : FrameworkElement
             using (var g = geometry.Open())
             {
                 var run = new List<Point>();
+                double Y(double v) => h - 1 - Math.Clamp(v / (ownMax ?? max), 0, 1) * (h - 2);
+
+                // On the compressed axis old samples are merged into buckets. The buckets are
+                // aligned to absolute sample numbers and sized by the (whole) age, so a sample
+                // stays in the same bucket while the graph slides; merging by screen position
+                // regrouped the samples on every frame and the old part jittered.
+                long firstAbs = series.Total - series.Count;
+                double perPixel = w * CompressK / ((capacity - 1) * ageScale); // pixels per sample at age 0
+                int bucketKey = -1, minI = -1, maxI = -1;
+                void FlushBucket()
+                {
+                    if (minI < 0) return;
+                    int a = Math.Min(minI, maxI), b = Math.Max(minI, maxI);
+                    run.Add(new Point(XOfAge(series.Count - 1 - a - slide), Y(series[a])));
+                    if (b != a) run.Add(new Point(XOfAge(series.Count - 1 - b - slide), Y(series[b])));
+                    minI = maxI = -1;
+                }
+
                 // Only the samples inside the window (one more, so the line reaches the left edge).
                 for (int i = Math.Max(0, series.Count - capacity - 1); i <= series.Count; i++)
                 {
                     double v = i < series.Count ? series[i] : double.NaN;
                     if (double.IsNaN(v))
                     {
-                        DrawRun(g, run, h);
+                        FlushBucket();
+                        DrawRun(g, run, h, Compress);
                         run.Clear();
                         continue;
                     }
-                    run.Add(new Point(XOfAge(series.Count - 1 - i - (Compress ? slide : 0)), h - 1 - Math.Clamp(v / (ownMax ?? max), 0, 1) * (h - 2)));
+                    if (!Compress)
+                    {
+                        run.Add(new Point(XOfAge(series.Count - 1 - i), Y(v)));
+                        continue;
+                    }
+                    int age = series.Count - 1 - i;
+                    double density = perPixel / (1 + CompressK * age / (capacity - 1));
+                    int size = 1 << (int)Math.Floor(Math.Log2(Math.Max(1, MinStep / density)));
+                    int key = (int)((firstAbs + i) / size) * 64 + (int)Math.Log2(size);
+                    if (key != bucketKey) { FlushBucket(); bucketKey = key; }
+                    if (minI < 0) minI = maxI = i;
+                    else
+                    {
+                        if (v < series[minI]) minI = i;
+                        if (v > series[maxI]) maxI = i;
+                    }
                 }
             }
             geometry.Freeze();
@@ -436,10 +470,10 @@ public sealed class LineGraph : FrameworkElement
         return kept;
     }
 
-    static void DrawRun(StreamGeometryContext g, List<Point> points, double h)
+    static void DrawRun(StreamGeometryContext g, List<Point> points, double h, bool alreadyThinned)
     {
         if (points.Count < 2) return;
-        var p = Thin(points);
+        var p = alreadyThinned ? points : Thin(points);
         g.BeginFigure(p[0], false, false);
         if (!SmoothCurves || p.Count < 3)
         {
