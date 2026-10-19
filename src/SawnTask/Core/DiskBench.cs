@@ -189,15 +189,18 @@ public static class DiskBench
             workers[w].Start();
         }
 
-        // The live speed: what was moved since the last look.
+        // The live speed: what was moved since the last look. If the pass ended during the wait, the
+        // stretch ends where the work did, not when we looked (that made the last value of every pass too low),
+        // and a very short last stretch is left out.
         long lastBytes = 0;
         double lastTime = 0;
         while (workers.Any(t => t.IsAlive))
         {
             Thread.Sleep(250);
-            double now = clock.Elapsed.TotalSeconds;
+            bool done = !workers.Any(t => t.IsAlive);
+            double now = done ? Math.Max(0, Interlocked.Read(ref lastEnd) - startStamp) / (double)Stopwatch.Frequency : clock.Elapsed.TotalSeconds;
             long total = Interlocked.Read(ref bytes);
-            if (now - lastTime > 0) live((total - lastBytes) / 1e6 / (now - lastTime));
+            if (now - lastTime >= (done ? 0.1 : 0.001)) live((total - lastBytes) / 1e6 / (now - lastTime));
             (lastBytes, lastTime) = (total, now);
         }
         double elapsed = Math.Max(0, lastEnd - startStamp) / (double)Stopwatch.Frequency;

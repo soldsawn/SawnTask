@@ -77,6 +77,9 @@ public sealed class History
         Gpu = new Series(capacity);
         CpuTemp = new Series(capacity);
         CpuPower = new Series(capacity);
+        DiskRead = new Series(capacity);
+        DiskWrite = new Series(capacity);
+        GpuMem = new Series(capacity);
     }
 
     public Series Cpu { get; }
@@ -88,10 +91,13 @@ public sealed class History
     public Series Gpu { get; }
     public Series CpuTemp { get; }
     public Series CpuPower { get; }
+    public Series DiskRead { get; }
+    public Series DiskWrite { get; }
+    public Series GpuMem { get; } // dedicated memory of the first GPU, % of its total
     public List<Series> Cores { get; } = [];
     public int GraphBreaks { get; private set; }
 
-    IEnumerable<Series> All => new[] { Cpu, CpuKernel, Mem, NetRx, NetTx, DiskActive, Gpu, CpuTemp, CpuPower }.Concat(Cores);
+    IEnumerable<Series> All => new[] { Cpu, CpuKernel, Mem, NetRx, NetTx, DiskActive, Gpu, CpuTemp, CpuPower, DiskRead, DiskWrite, GpuMem }.Concat(Cores);
 
     public void Append(SampleFrame f)
     {
@@ -111,6 +117,9 @@ public sealed class History
         Gpu.Add(f.Gpu ?? double.NaN);
         CpuTemp.Add(f.CpuTemp ?? double.NaN);
         CpuPower.Add(f.CpuPower ?? double.NaN);
+        DiskRead.Add(f.DiskRead ?? double.NaN);
+        DiskWrite.Add(f.DiskWrite ?? double.NaN);
+        GpuMem.Add(f.Gpus.FirstOrDefault() is { VramUsed: ulong used, VramTotal: ulong total and > 0 } ? used * 100.0 / total : double.NaN);
 
         int cores = f.Cores?.Length ?? 0;
         while (Cores.Count < cores) Cores.Add(new Series(coreCapacity));
@@ -121,7 +130,7 @@ public sealed class History
     // A longer or shorter history for the main graphs (the per-core graphs keep their length).
     public void Resize(int capacity)
     {
-        foreach (var s in new[] { Cpu, CpuKernel, Mem, NetRx, NetTx, DiskActive, Gpu, CpuTemp, CpuPower }) s.Resize(capacity);
+        foreach (var s in new[] { Cpu, CpuKernel, Mem, NetRx, NetTx, DiskActive, Gpu, CpuTemp, CpuPower, DiskRead, DiskWrite, GpuMem }) s.Resize(capacity);
     }
 
     public void Clear()

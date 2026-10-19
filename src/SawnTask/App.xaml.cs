@@ -64,7 +64,7 @@ public partial class App : Application
                 try
                 {
                     DiskBench.Run(e.Args[2], BenchOptions.For(profile),
-                        pr => { if (pr.Phase == "prepare" && pr.LiveMBps > 0) output.WriteLine($"prepare {pr.LiveMBps:0} MB/s"); },
+                        pr => { if (pr.LiveMBps > 0) output.WriteLine($"live {pr.Phase,-7} {pr.Test,-12} {(pr.Write ? "w" : "r")} pass {pr.Pass} {pr.LiveMBps,8:0} MB/s"); },
                         r => output.WriteLine($"{r.Test,-12} {(r.Write ? "write" : "read"),-5} {r.MBps,9:0.0} MB/s {r.Iops,10:0} IOPS {r.LatencyUs,9:0.0} us"),
                         CancellationToken.None);
                 }

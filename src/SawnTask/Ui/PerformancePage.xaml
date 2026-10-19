@@ -66,21 +66,34 @@
                         <ComboBox x:Name="ViewBox" HorizontalAlignment="Right" MinWidth="110" SelectionChanged="ViewBox_SelectionChanged"/>
                     </Grid>
 
-                    <!-- Statistics -->
-                    <Grid DockPanel.Dock="Bottom" x:Name="StatsGrid" Margin="0,14,0,0">
-                        <Grid.ColumnDefinitions>
-                            <ColumnDefinition/>
-                            <ColumnDefinition/>
-                            <ColumnDefinition/>
-                            <ColumnDefinition/>
-                        </Grid.ColumnDefinitions>
-                    </Grid>
+                    <!-- Statistics of the selected device (rebuilt per device; scrolls if there are many) -->
+                    <ScrollViewer DockPanel.Dock="Bottom" VerticalScrollBarVisibility="Auto" MaxHeight="250" Margin="0,14,0,0">
+                        <Grid x:Name="StatsGrid">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                                <ColumnDefinition/>
+                            </Grid.ColumnDefinitions>
+                        </Grid>
+                    </ScrollViewer>
 
                     <Grid>
-                        <!-- One graph per logical processor (Expanded) -->
-                        <UniformGrid x:Name="CoreGrid"/>
-                        <!-- One graph for the whole device (Combined, and every other device) -->
-                        <ui:LineGraph x:Name="BigGraph" Visibility="Collapsed" GridColumns="10" GridRows="6" VisibleSamples="120"/>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="*"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+                        <Grid>
+                            <!-- One graph per logical processor (Expanded) -->
+                            <UniformGrid x:Name="CoreGrid"/>
+                            <!-- One graph for the whole device (Combined, and every other device) -->
+                            <ui:LineGraph x:Name="BigGraph" Visibility="Collapsed" GridColumns="10" GridRows="6" VisibleSamples="120"/>
+                        </Grid>
+                        <!-- A second graph for devices that have one (disk transfer rate, GPU memory) -->
+                        <DockPanel x:Name="SecondPanel" Grid.Row="1" Height="170" Margin="0,10,0,0" Visibility="Collapsed">
+                            <TextBlock x:Name="SecondTitle" DockPanel.Dock="Top" Style="{StaticResource Note}" Margin="0,0,0,4"/>
+                            <ui:LineGraph x:Name="SecondGraph" GridColumns="10" GridRows="4" VisibleSamples="120"/>
+                        </DockPanel>
                     </Grid>
                 </DockPanel>
             </Border>
