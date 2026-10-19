@@ -126,12 +126,48 @@ public sealed class ProcessRow(ProcessKey key) : INotifyPropertyChanged
     }
 }
 
-// One row on the Users page: a logon session with the totals of its processes.
-public sealed record UserRow(uint SessionId, string User, string State, string Station, string Client,
-    double Cpu, long Memory, int Processes)
+// One row on the Users page: a logon session with the totals of its processes. Updated in place
+// every tick (a new list each tick rebuilt every row and lost the scroll position).
+public sealed class UserRow(uint sessionId) : INotifyPropertyChanged
 {
-    public string CpuText => $"{Cpu:0.0}%";
-    public string MemoryText => Fmt.Bytes(Memory);
+    string user = "", state = "", station = "", client = "";
+    double cpu;
+    long memory;
+    int processes;
+
+    public uint SessionId { get; } = sessionId;
+    public string User => user;
+    public string State => state;
+    public string Station => station;
+    public string Client => client;
+    public double Cpu => cpu;
+    public long Memory => memory;
+    public int Processes => processes;
+    public string CpuText => $"{cpu:0.0}%";
+    public string MemoryText => Fmt.Bytes(memory);
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public void Update(string user, string state, string station, string client, double cpu, long memory, int processes)
+    {
+        Set(ref this.user, user, nameof(User));
+        Set(ref this.state, state, nameof(State));
+        Set(ref this.station, station, nameof(Station));
+        Set(ref this.client, client, nameof(Client));
+        if (Set(ref this.cpu, cpu, nameof(Cpu))) Raise(nameof(CpuText));
+        if (Set(ref this.memory, memory, nameof(Memory))) Raise(nameof(MemoryText));
+        Set(ref this.processes, processes, nameof(Processes));
+    }
+
+    bool Set<T>(ref T field, T value, string property)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value;
+        Raise(property);
+        return true;
+    }
+
+    void Raise(string property) => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(property));
 }
 
 // One line in the Summary's Sensors card (a temperature or a power reading).

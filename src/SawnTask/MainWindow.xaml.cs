@@ -23,11 +23,12 @@ public partial class MainWindow : Window
     const int PagePerformance = 1, PageUsers = 3, PageConnections = 4, PageSources = 10, PageSettings = 11, PageSystemInfo = 12, PagePower = 13, PageDiskBench = 14;
     public const int PageDisk = 9;
 
-    // Text keys of the pages that can be the start page, in page order.
-    static readonly string[] StartPageKeys =
+    // The pages that can be the start page (text key, page index). Settings itself is not one.
+    static readonly (string Key, int Page)[] StartPages =
     [
-        "Nav.Summary", "Nav.Performance", "Nav.Processes", "Nav.Users", "Nav.Connections", "Nav.Startup",
-        "Nav.Services", "Nav.Installed", "Nav.Drivers", "Nav.Disk", "Nav.Sources",
+        ("Nav.Summary", 0), ("Nav.Performance", 1), ("Nav.Processes", 2), ("Nav.Users", 3), ("Nav.Connections", 4),
+        ("Nav.Startup", 5), ("Nav.Services", 6), ("Nav.Installed", 7), ("Nav.Drivers", 8), ("Nav.Disk", 9),
+        ("Nav.Sources", 10), ("Nav.SystemInfo", PageSystemInfo), ("Nav.Power", PagePower), ("Nav.DiskBench", PageDiskBench),
     ];
 
     static readonly Color CpuColor = Color.FromRgb(0x66, 0xBB, 0x6A);
@@ -44,6 +45,7 @@ public partial class MainWindow : Window
     readonly ListCollectionView processView;
     readonly ObservableCollection<ConnectionItem> connections = [];
     readonly ObservableCollection<SourceRow> sources = [];
+    readonly ObservableCollection<UserRow> userRows = [];
     readonly ListCollectionView connectionView;
     LineGraph[] SummaryGraphs => [CpuGraph, MemGraph, NetGraph, DiskGraph, GpuGraph, TempGraph, PowerGraph];
 
@@ -129,15 +131,15 @@ public partial class MainWindow : Window
         LineGraph.Fps = settings.GraphFps;
         LineGraph.SmoothCurves = settings.SmoothCurves;
         // Start page choices: every page except Settings itself, named like the menu.
-        foreach (string key in StartPageKeys)
+        foreach (var (key, page) in StartPages)
         {
-            var choice = new ComboBoxItem();
+            var choice = new ComboBoxItem { Tag = page };
             choice.SetResourceReference(ContentProperty, key);
             StartPageBox.Items.Add(choice);
         }
-        StartPageBox.SelectedIndex = Math.Clamp(settings.StartPage, 0, StartPageKeys.Length - 1);
+        StartPageBox.SelectedIndex = Math.Max(0, Array.FindIndex(StartPages, p => p.Page == settings.StartPage));
         SetMoreOpen(settings.NavMoreOpen);
-        Page = StartPageBox.SelectedIndex;
+        Page = StartPages[StartPageBox.SelectedIndex].Page;
         loadingSettings = false;
         SpeedBox.SelectedIndex = speedIndex;
         SettingsAdminBtn.Visibility = Elevation.IsElevated ? Visibility.Collapsed : Visibility.Visible;
@@ -302,15 +304,18 @@ public partial class MainWindow : Window
 
     void UpdateUsers(Snapshot s)
     {
-        var rows = s.Sessions.Select(u =>
+        // Rows are kept and updated in place, so the selection and scroll position stay.
+        if (UsersGrid.ItemsSource is null) UsersGrid.ItemsSource = userRows;
+        foreach (var u in s.Sessions)
         {
+            var row = userRows.FirstOrDefault(r => r.SessionId == u.SessionId);
+            if (row is null) userRows.Add(row = new UserRow(u.SessionId));
             var mine = s.Processes.Where(p => p.SessionId == u.SessionId).ToList();
-            return new UserRow(u.SessionId, u.User, u.State, u.Station, u.Client,
-                mine.Sum(p => p.CpuPercent ?? 0), mine.Sum(p => p.PrivateBytes), mine.Count);
-        }).ToList();
-        uint? selected = (UsersGrid.SelectedItem as UserRow)?.SessionId;
-        UsersGrid.ItemsSource = rows;
-        UsersGrid.SelectedItem = rows.FirstOrDefault(r => r.SessionId == selected) ?? rows.FirstOrDefault();
+            row.Update(u.User, u.State, u.Station, u.Client, mine.Sum(p => p.CpuPercent ?? 0), mine.Sum(p => p.PrivateBytes), mine.Count);
+        }
+        for (int i = userRows.Count - 1; i >= 0; i--)
+            if (!s.Sessions.Any(u => u.SessionId == userRows[i].SessionId)) userRows.RemoveAt(i);
+        if (UsersGrid.SelectedItem is null && userRows.Count > 0) UsersGrid.SelectedItem = userRows[0];
     }
 
     void UsersGrid_SelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -710,7 +715,7 @@ public partial class MainWindow : Window
     void StartPage_Changed(object sender, SelectionChangedEventArgs e)
     {
         if (loadingSettings || StartPageBox.SelectedIndex < 0) return;
-        settings.StartPage = StartPageBox.SelectedIndex;
+        settings.StartPage = StartPages[StartPageBox.SelectedIndex].Page;
         settings.Save();
     }
 
