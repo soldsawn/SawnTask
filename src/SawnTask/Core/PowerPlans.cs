@@ -73,7 +73,9 @@ public static class PowerPlans
                 if (status == NoMoreItems) break;
                 Check(status);
                 var id = Marshal.PtrToStructure<Guid>(buffer);
-                plans.Add(new PowerPlan(id, Name(id), id == active));
+                string name = Name(id);
+                if (DemoEnglish && plans.Any(p => p.Name == name)) name += " (copy)"; // two plans may share a name
+                plans.Add(new PowerPlan(id, name, id == active));
             }
         }
         finally { Marshal.FreeHGlobal(buffer); }
@@ -89,7 +91,7 @@ public static class PowerPlans
         try
         {
             return PowerReadFriendlyName(IntPtr.Zero, ref plan, IntPtr.Zero, IntPtr.Zero, buffer, ref size) == 0
-                ? Marshal.PtrToStringUni(buffer) ?? plan.ToString()
+                ? Demo(Marshal.PtrToStringUni(buffer) ?? plan.ToString())
                 : plan.ToString();
         }
         finally { Marshal.FreeHGlobal(buffer); }
@@ -167,6 +169,24 @@ public static class PowerPlans
     [DllImport("powrprof.dll")] static extern uint PowerReadValueIncrement(IntPtr root, ref Guid subGroup, ref Guid setting, out uint value);
     [DllImport("powrprof.dll")] static extern uint PowerReadValueUnitsSpecifier(IntPtr root, ref Guid subGroup, ref Guid setting, IntPtr buffer, ref uint size);
 
+    // For README screenshots only: SAWNTASK_DEMO_ENGLISH=1 shows the Windows-supplied names in English
+    // (a Turkish Windows gives Turkish text, which a reader of the English README would not follow).
+    static readonly bool DemoEnglish = Environment.GetEnvironmentVariable("SAWNTASK_DEMO_ENGLISH") == "1";
+    static readonly Dictionary<string, string> DemoText = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Dengeli"] = "Balanced", ["Yüksek performans"] = "High performance", ["Güç tasarrufu"] = "Power saver",
+        ["Nihai Performans"] = "Ultimate Performance", ["Sabit disk"] = "Hard disk",
+        ["Sabit diski kapatmak için beklenecek süre"] = "Turn off hard disk after",
+        ["JavaScript Zamanlayıcı Sıklığı"] = "JavaScript Timer Frequency", ["En Fazla Güç Tasarrufu"] = "Maximum Power Saving",
+        ["En Yüksek Performans"] = "Maximum Performance", ["Masaüstü arka plan ayarları"] = "Desktop background settings",
+        ["Slayt gösterisi"] = "Slide show", ["Duraklatıldı"] = "Paused", ["Kullanılabilir"] = "Available",
+        ["Kablosuz Bağdaştırıcı Ayarları"] = "Wireless Adapter Settings", ["Güç Tasarrufu Modu"] = "Power Saving Mode",
+        ["Maksimum Performans"] = "Maximum Performance", ["Düşük Güç Tasarrufu"] = "Low Power Saving",
+        ["Orta Güç Tasarrufu"] = "Medium Power Saving", ["Maksimum Güç Tasarrufu"] = "Maximum Power Saving",
+    };
+
+    static string Demo(string text) => DemoEnglish && DemoText.TryGetValue(text.Trim(), out var english) ? english : text;
+
     // powrprof's "read a string" functions are called twice: once for the size, once for the text.
     delegate uint StringReader(IntPtr buffer, ref uint size);
 
@@ -175,7 +195,7 @@ public static class PowerPlans
         uint size = 0;
         if (read(IntPtr.Zero, ref size) != 0 || size == 0) return "";
         IntPtr buffer = Marshal.AllocHGlobal((int)size);
-        try { return read(buffer, ref size) == 0 ? Marshal.PtrToStringUni(buffer) ?? "" : ""; }
+        try { return read(buffer, ref size) == 0 ? Demo(Marshal.PtrToStringUni(buffer) ?? "") : ""; }
         finally { Marshal.FreeHGlobal(buffer); }
     }
 

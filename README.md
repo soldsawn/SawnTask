@@ -36,12 +36,14 @@ Both are on the [Releases page](https://github.com/soldsawn/SawnTask/releases/la
 
 ### "Why is my computer slow?"
 The **Summary** page shows CPU, memory, disks, network, GPU and CPU power on one screen, plus the
-processes using the most CPU right now. The CPU graph keeps the last 600 samples (five minutes
-at the fastest update speed): the newest seconds are drawn wide, older minutes are gently
-squeezed to the left.
+processes using the most CPU right now. The graphs keep five minutes of history by default
+(up to an hour in Settings): the newest seconds are drawn wide, older minutes are gently
+squeezed to the left, or drawn at one scale if you prefer.
 **Drag across the graph** to pick any stretch of time and the list switches to the *average* CPU
 use of every process over that stretch. A spike from two minutes ago gets a name.
 Hover to see a single moment; click a process to jump to it on the Processes page.
+The memory and GPU cards work the same way: hover or drag to see the value at that moment, or
+the average, lowest and highest of the stretch.
 
 ### "Why is it so hot and loud?"
 CPU package temperature and power, integrated-graphics and board temperatures come from **Intel
@@ -66,6 +68,15 @@ grouped as Windows groups them, with an **ⓘ** beside each setting explaining w
 I/O, threads and handles; end task, suspend, set priority, open location), **Startup apps**
 (enable/disable exactly like Task Manager does), **Services**, **Connections** (every TCP/UDP
 socket with its process and who can reach it), **Drivers**, **Installed apps** and **Users**.
+
+### "How fast is my SSD, and is it healthy?"
+**Disk speed** measures a drive with sequential and random reads and writes (the same four tests
+the well-known disk benchmarks use) and shows four plain numbers with a one-line meaning each,
+a live speed graph and a verdict for that kind of disk (NVMe, SATA SSD, hard disk, USB).
+**Advanced** has all eight measurements with IOPS and latency, plus the file size and number of
+passes. Earlier tests are kept and compared with the one before. The disk's own health report
+(temperature, life used, data written, errors) is shown beside the result. The test writes one
+temporary file to the drive you pick and deletes it afterwards.
 
 ### "Where did my disk space go?"
 **Disk space** scans a drive or folder in parallel and shows a size-sorted tree, the largest
@@ -100,6 +111,8 @@ system folders.
 | **Performance:** every logical processor, speed, caches, up time and last shutdown. | **Light theme:** every page follows the Windows-style dark or light theme. |
 | ![System Info](docs/screenshots/system-info.png) | ![Power plans with extra settings](docs/screenshots/power-plans.png) |
 | **System Info:** the hardware, read from Windows and the firmware. | **Power plans:** basic settings on top, every advanced setting below. |
+| ![Disk speed test](docs/screenshots/disk-speed.png) | |
+| **Disk speed:** four plain numbers, a verdict and the disk's health. | |
 
 ---
 
@@ -108,14 +121,19 @@ system folders.
 - **Summary:** CPU (utilization, kernel time, temperature, speed), memory, network, disks, GPU,
   CPU power, sensors, top CPU processes; CPU history with period selection.
 - **Performance:** CPU, memory, GPU, disks, network, CPU power and thermals with one-minute
-  graphs; per-logical-processor graphs (Expanded) or one graph (Combined); CPU statistics.
+  graphs and a table of figures for each: per-logical-processor graphs (Expanded) or one graph
+  (Combined) with CPU statistics; memory (committed, cached, pools, modules); GPU per adapter
+  with a memory graph; disks with transfer rate, models and volumes; network adapters; sensors.
 - **Processes · Users · Connections · Startup apps · Services · Installed apps · Drivers**
 - **System Info:** hardware overview, processor, memory, graphics, storage, power, network,
   operating system, diagnostics.
 - **Power plans:** plans, basic settings, all advanced settings with explanations.
 - **Disk space:** parallel scanner, tree, largest files, file types, Recycle Bin.
+- **Disk speed:** sequential and random read/write test, live graph, verdict by disk type, disk
+  health, history of earlier tests.
 - **Settings:** English / Türkçe, dark / light theme, update speed (0.5 s, 1 s, 2 s, paused),
-  graph frame rate, smooth curves, start page.
+  graph frame rate, smooth curves, history length (5 to 60 minutes), compress older history,
+  start page.
 
 **Limits worth knowing:** temperatures need Intel Dynamic Tuning (most Intel laptops) or an
 NVIDIA GPU; AMD CPU and GPU temperatures are not read yet. Machines with more than 64 logical
@@ -147,6 +165,8 @@ Command-line switches for testing:
 |---|---|
 | `--selftest out.txt` | Runs every data source without a window and writes what each one measured |
 | `--sysinfo out.txt` | Writes everything System Info reads |
+| `--bench out.txt D:\ [quick\|normal\|thorough]` | Runs the disk speed test without a window |
+| `--health out.txt` | Writes what each disk reports about its own health |
 | `--snapshot out.png [seconds] [page]` | Opens the window, waits, saves a screenshot and exits |
 
 ### Layout
@@ -183,11 +203,13 @@ SmartScreen uyarısı çıkabilir: **Ek bilgi → Yine de çalıştır**.
 - **Sıcaklıklar:** Intel Dynamic Tuning (çoğu Intel dizüstü) ve NVIDIA NVML üzerinden; sürücü
   kurmaz, yönetici hakkı gerektirmez.
 - **Performans:** her mantıksal işlemci için ayrı grafik, hız, önbellekler, açık kalma süresi ve
-  son kapanma nedeni.
+  son kapanma nedeni; bellek, GPU (kart başına), disk, ağ, güç ve sıcaklık için ayrı ayrıntı görünümleri.
 - **Sistem bilgisi:** işlemci, bellek modülleri, ekran kartları, diskler, pil, ağ ve Windows.
 - **Güç planları:** planları değiştir, kopyala, yeniden adlandır, sil; **Ekstra ayarlar** altında
   Windows'un tüm gelişmiş güç ayarları, her birinin yanında ne işe yaradığını anlatan **ⓘ** ile.
 - **İşlemler, Başlangıç uygulamaları, Hizmetler, Bağlantılar, Sürücüler, Yüklü uygulamalar, Kullanıcılar.**
+- **Disk hızı:** sıralı ve rastgele okuma/yazma testi, canlı grafik, disk türüne göre yorum, diskin
+  kendi sağlık raporu ve önceki testlerle karşılaştırma.
 - **Disk alanı:** klasör ağacı, en büyük dosyalar, dosya türleri, Geri Dönüşüm Kutusu'na taşıma.
 - **Arayüz:** Türkçe / İngilizce, koyu / açık tema.
 
