@@ -1,0 +1,150 @@
+<UserControl x:Class="SawnTask.Ui.DiskBenchPage"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="clr-namespace:SawnTask.Ui"
+             Foreground="{DynamicResource Fg}">
+    <!-- Disk speed test: four big numbers for everyday use, the full table under "Advanced". -->
+    <UserControl.Resources>
+        <!-- One result card: title, big MB/s value, a plain-words explanation. -->
+        <Style x:Key="ResultValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="30"/>
+            <Setter Property="FontWeight" Value="Light"/>
+            <Setter Property="Margin" Value="0,6,0,0"/>
+        </Style>
+    </UserControl.Resources>
+
+    <DockPanel Margin="15,10,15,10">
+        <!-- Title and toolbar -->
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,8">
+            <TextBlock Text="{DynamicResource DB.Title}" Style="{StaticResource PageTitle}"/>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                <ComboBox x:Name="DriveBox" Width="450" Margin="0,0,8,0"/>
+                <ComboBox x:Name="ProfileBox" Width="150" Margin="0,0,8,0" SelectionChanged="Profile_Changed"/>
+                <Button x:Name="StartBtn" Content="{DynamicResource DB.Start}" Padding="18,4" Click="Start_Click"/>
+                <Button x:Name="StopBtn" Content="{DynamicResource DB.Stop}" Padding="18,4" Margin="6,0,0,0" IsEnabled="False" Click="Stop_Click"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- Progress -->
+        <StackPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+            <ProgressBar x:Name="Progress" Height="6" Background="{DynamicResource BarTrack}" Foreground="#4FC3F7" BorderThickness="0" Maximum="1"/>
+            <TextBlock x:Name="StatusLine" Foreground="{DynamicResource Dim}" Margin="0,5,0,0" TextWrapping="Wrap"/>
+        </StackPanel>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- The four everyday numbers -->
+                <UniformGrid Columns="4" Margin="-5,0">
+                    <Border Style="{StaticResource Card}" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource DB.SeqRead}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock x:Name="SeqReadValue" Style="{StaticResource ResultValue}" Foreground="#66BB6A"/>
+                            <TextBlock Style="{StaticResource Note}" Text="{DynamicResource DB.SeqReadTip}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource DB.SeqWrite}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock x:Name="SeqWriteValue" Style="{StaticResource ResultValue}" Foreground="#FFA726"/>
+                            <TextBlock Style="{StaticResource Note}" Text="{DynamicResource DB.SeqWriteTip}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource DB.RndRead}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock x:Name="RndReadValue" Style="{StaticResource ResultValue}" Foreground="#66BB6A"/>
+                            <TextBlock Style="{StaticResource Note}" Text="{DynamicResource DB.RndReadTip}"/>
+                        </StackPanel>
+                    </Border>
+                    <Border Style="{StaticResource Card}" Padding="14">
+                        <StackPanel>
+                            <TextBlock Text="{DynamicResource DB.RndWrite}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock x:Name="RndWriteValue" Style="{StaticResource ResultValue}" Foreground="#FFA726"/>
+                            <TextBlock Style="{StaticResource Note}" Text="{DynamicResource DB.RndWriteTip}"/>
+                        </StackPanel>
+                    </Border>
+                </UniformGrid>
+
+                <!-- Verdict for this kind of disk (filled after a test) -->
+                <Border x:Name="VerdictCard" Style="{StaticResource Card}" Padding="14" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="VerdictTitle" Style="{StaticResource CardTitle}"/>
+                        <TextBlock x:Name="VerdictText" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Disk health (filled when the test page opens and after a test) -->
+                <Border x:Name="HealthCard" Style="{StaticResource Card}" Padding="14" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="HealthTitle" Style="{StaticResource CardTitle}"/>
+                        <TextBlock x:Name="HealthSummary" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        <Grid x:Name="HealthGrid" Margin="0,10,0,0"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Live speed -->
+                <Border Style="{StaticResource Card}" Padding="14">
+                    <StackPanel>
+                        <Grid>
+                            <TextBlock Text="{DynamicResource DB.GraphTitle}" Style="{StaticResource CardTitle}"/>
+                            <TextBlock x:Name="GraphScale" HorizontalAlignment="Right" Foreground="{DynamicResource Dim}" VerticalAlignment="Bottom"/>
+                        </Grid>
+                        <ui:LineGraph x:Name="Graph" Height="150" Margin="0,8,0,0" GridColumns="12" GridRows="4" VisibleSamples="240"
+                                      AutoScale="True" MinAutoMax="100"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Advanced: the full table and the manual settings -->
+                <Border Style="{StaticResource Card}" Padding="14">
+                    <StackPanel>
+                        <ToggleButton x:Name="AdvancedToggle" Checked="Advanced_Changed" Unchecked="Advanced_Changed"
+                                      Cursor="Hand" HorizontalContentAlignment="Left" Foreground="{DynamicResource Fg}">
+                            <ToggleButton.Template>
+                                <ControlTemplate TargetType="ToggleButton">
+                                    <Border Background="Transparent" Padding="0,2">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock x:Name="Chevron" Text="&#xE76C;" FontFamily="Segoe Fluent Icons, Segoe MDL2 Assets"
+                                                       FontSize="12" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                            <TextBlock Text="{DynamicResource DB.Advanced}" FontSize="16"/>
+                                        </StackPanel>
+                                    </Border>
+                                    <ControlTemplate.Triggers>
+                                        <Trigger Property="IsChecked" Value="True">
+                                            <Setter TargetName="Chevron" Property="Text" Value="&#xE70D;"/>
+                                        </Trigger>
+                                    </ControlTemplate.Triggers>
+                                </ControlTemplate>
+                            </ToggleButton.Template>
+                        </ToggleButton>
+                        <StackPanel x:Name="AdvancedPanel" Visibility="Collapsed" Margin="0,10,0,0">
+                            <Grid Margin="0,0,0,10">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="30"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="{DynamicResource DB.Size}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <ComboBox x:Name="SizeBox" Grid.Column="1" Width="110" SelectionChanged="Manual_Changed"/>
+                                <TextBlock Grid.Column="3" Text="{DynamicResource DB.Passes}" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                <ComboBox x:Name="PassBox" Grid.Column="4" Width="70" SelectionChanged="Manual_Changed"/>
+                            </Grid>
+                            <Grid x:Name="Table"/>
+                            <TextBlock Style="{StaticResource Note}" Text="{DynamicResource DB.Note}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+
+                <!-- Earlier tests (filled from the history file) -->
+                <Border x:Name="HistoryCard" Style="{StaticResource Card}" Padding="14" Visibility="Collapsed">
+                    <StackPanel>
+                        <TextBlock x:Name="HistoryTitle" Style="{StaticResource CardTitle}"/>
+                        <Grid x:Name="HistoryGrid" Margin="0,8,0,0"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+    </DockPanel>
+</UserControl>

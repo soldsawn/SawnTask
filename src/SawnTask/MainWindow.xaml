@@ -87,6 +87,7 @@
                 <ListBoxItem ui:NavIcon.Glyph="&#xE77B;" Content="{DynamicResource Nav.Users}" Tag="3"/>
                 <ListBoxItem ui:NavIcon.Glyph="&#xE7E8;" Content="{DynamicResource Nav.Startup}" Tag="5"/>
                 <ListBoxItem ui:NavIcon.Glyph="&#xEDA2;" Content="{DynamicResource Nav.Disk}" Tag="9"/>
+                <ListBoxItem ui:NavIcon.Glyph="&#xEC4A;" Content="{DynamicResource Nav.DiskBench}" Tag="14"/>
                 <ListBoxItem x:Name="NavMore" Content="{DynamicResource Nav.More}" Style="{StaticResource NavMore}"
                              PreviewMouseLeftButtonDown="NavMore_Click"/>
                 <ListBoxItem ui:NavIcon.Glyph="&#xE774;" Content="{DynamicResource Nav.Connections}" Tag="4"/>
@@ -594,6 +595,11 @@
             <!-- Power plans (tab 13) -->
             <TabItem>
                 <ui:PowerPlansPage x:Name="PowerPage"/>
+            </TabItem>
+
+            <!-- Disk speed test (tab 14) -->
+            <TabItem>
+                <ui:DiskBenchPage x:Name="BenchPage"/>
             </TabItem>
         </TabControl>
 

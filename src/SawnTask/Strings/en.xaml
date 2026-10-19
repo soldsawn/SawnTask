@@ -376,4 +376,45 @@
 <sys:String x:Key="Set.Smooth">Smooth graph curves</sys:String>
 <sys:String x:Key="Set.SmoothNote">Draws curves instead of straight segments between samples. Curves never go above the top or below zero.</sys:String>
 <sys:String x:Key="Set.StartPage">Default start page</sys:String>
+
+<!-- Disk speed test -->
+<sys:String x:Key="Nav.DiskBench">Disk speed</sys:String>
+<sys:String x:Key="DB.Title">Disk speed test</sys:String>
+<sys:String x:Key="DB.Start">Start</sys:String>
+<sys:String x:Key="DB.Stop">Stop</sys:String>
+<sys:String x:Key="DB.Profile.Quick">Quick (256 MB)</sys:String>
+<sys:String x:Key="DB.Profile.Normal">Normal (1 GB)</sys:String>
+<sys:String x:Key="DB.Profile.Thorough">Thorough (4 GB)</sys:String>
+<sys:String x:Key="DB.Idle">Pick a drive and press Start. The test writes a temporary file to that drive and deletes it afterwards.</sys:String>
+<sys:String x:Key="DB.Preparing">Preparing the test file…  {0:0} MB/s</sys:String>
+<sys:String x:Key="DB.Running">Test {0} of {1}: {2} {3}  ·  pass {4} of {5}  ·  {6:0} MB/s</sys:String>
+<sys:String x:Key="DB.Read">read</sys:String>
+<sys:String x:Key="DB.Write">write</sys:String>
+<sys:String x:Key="DB.Done">Finished. The test file was deleted.</sys:String>
+<sys:String x:Key="DB.Stopped">Stopped. The test file was deleted.</sys:String>
+<sys:String x:Key="DB.Failed">The test failed: {0}</sys:String>
+<sys:String x:Key="DB.NoSpace">Not enough free space on that drive for this test size (about {0} are needed).</sys:String>
+<sys:String x:Key="DB.NoDrive">No drive found.</sys:String>
+<sys:String x:Key="DB.DriveItem">{0}  {1}  ·  {2}  ·  {3} free</sys:String>
+<sys:String x:Key="DB.SeqRead">Sequential read</sys:String>
+<sys:String x:Key="DB.SeqWrite">Sequential write</sys:String>
+<sys:String x:Key="DB.RndRead">Random read</sys:String>
+<sys:String x:Key="DB.RndWrite">Random write</sys:String>
+<sys:String x:Key="DB.SeqReadTip">Reading big files: copying a movie, loading a game level.</sys:String>
+<sys:String x:Key="DB.SeqWriteTip">Writing big files: installing a game, saving a video.</sys:String>
+<sys:String x:Key="DB.RndReadTip">Reading small pieces one at a time. Starting Windows and opening apps feels like this.</sys:String>
+<sys:String x:Key="DB.RndWriteTip">Writing small pieces: settings, browser cache, databases.</sys:String>
+<sys:String x:Key="DB.GraphTitle">Speed during the test</sys:String>
+<sys:String x:Key="DB.GraphScale">top of the graph = {0:0} MB/s</sys:String>
+<sys:String x:Key="DB.Advanced">Advanced</sys:String>
+<sys:String x:Key="DB.Size">Test file size</sys:String>
+<sys:String x:Key="DB.Passes">Passes (the best one counts)</sys:String>
+<sys:String x:Key="DB.Col.Test">Test</sys:String>
+<sys:String x:Key="DB.Col.Read">Read</sys:String>
+<sys:String x:Key="DB.Col.ReadIops">Read IOPS</sys:String>
+<sys:String x:Key="DB.Col.ReadLat">Read latency</sys:String>
+<sys:String x:Key="DB.Col.Write">Write</sys:String>
+<sys:String x:Key="DB.Col.WriteIops">Write IOPS</sys:String>
+<sys:String x:Key="DB.Col.WriteLat">Write latency</sys:String>
+<sys:String x:Key="DB.Note">SEQ1M Q8T1: 1 MiB pieces, 8 requests at once. RND4K Q1T1: 4 KiB pieces at random places, one request at a time. The Windows file cache is bypassed, so the numbers are the disk's own. Other programs using the disk during the test lower the result.</sys:String>
 </ResourceDictionary>

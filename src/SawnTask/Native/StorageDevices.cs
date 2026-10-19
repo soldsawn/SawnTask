@@ -57,6 +57,23 @@ public static class StorageDevices
         return disks;
     }
 
+    const uint IOCTL_STORAGE_GET_DEVICE_NUMBER = 0x002D1080;
+
+    // The physical disk a drive letter ("C:\") lives on, or null (network drive, several disks in one volume...).
+    public static int? DiskNumberOf(string driveRoot)
+    {
+        if (driveRoot.Length < 2 || driveRoot[1] != ':') return null;
+        using var handle = CreateFileW($@"\\.\{driveRoot[0]}:", 0, FILE_SHARE_READ_WRITE, IntPtr.Zero, OPEN_EXISTING, 0, IntPtr.Zero);
+        if (handle.IsInvalid) return null;
+        var reply = new byte[12]; // STORAGE_DEVICE_NUMBER: device type, device number, partition number
+        return DeviceIoControl(handle, IOCTL_STORAGE_GET_DEVICE_NUMBER, [], 0, reply, reply.Length, out _, IntPtr.Zero)
+            ? BitConverter.ToInt32(reply, 4)
+            : null;
+    }
+
+    // The disks, read again each time (the list is short and the questions cost almost nothing).
+    public static List<Disk> List() => Read();
+
     // STORAGE_PROPERTY_QUERY: PropertyId, QueryType (0 = standard) and one spare byte, padded to 12.
     static byte[] Query(int propertyId)
     {

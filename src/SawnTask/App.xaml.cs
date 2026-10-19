@@ -54,6 +54,26 @@ public partial class App : Application
             return;
         }
 
+        // "SawnTask.exe --bench out.txt D:\ [quick|normal|thorough]": the disk speed test without a window.
+        if (e.Args.Length >= 3 && e.Args[0] == "--bench")
+        {
+            var profile = e.Args.Length >= 4 && Enum.TryParse(e.Args[3], true, out BenchProfile p) ? p : BenchProfile.Quick;
+            int code = 0;
+            using (var output = new StreamWriter(e.Args[1]))
+            {
+                try
+                {
+                    DiskBench.Run(e.Args[2], BenchOptions.For(profile),
+                        pr => { if (pr.Phase == "prepare" && pr.LiveMBps > 0) output.WriteLine($"prepare {pr.LiveMBps:0} MB/s"); },
+                        r => output.WriteLine($"{r.Test,-12} {(r.Write ? "write" : "read"),-5} {r.MBps,9:0.0} MB/s {r.Iops,10:0} IOPS {r.LatencyUs,9:0.0} us"),
+                        CancellationToken.None);
+                }
+                catch (BenchException ex) { output.WriteLine("FAILED: " + ex.Message); code = 1; }
+            }
+            Shutdown(code);
+            return;
+        }
+
         if (e.Args.Length >= 3 && e.Args[0] == "--disk-scan")
         {
             int code;

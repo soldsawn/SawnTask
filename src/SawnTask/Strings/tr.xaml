@@ -376,4 +376,45 @@
 <sys:String x:Key="Set.Smooth">Yumuşak grafik eğrileri</sys:String>
 <sys:String x:Key="Set.SmoothNote">Örnekler arasında düz çizgiler yerine eğriler çizer. Eğriler asla tepeden taşmaz veya sıfırın altına inmez.</sys:String>
 <sys:String x:Key="Set.StartPage">Varsayılan başlangıç sayfası</sys:String>
+
+<!-- Disk hız testi -->
+<sys:String x:Key="Nav.DiskBench">Disk hızı</sys:String>
+<sys:String x:Key="DB.Title">Disk hız testi</sys:String>
+<sys:String x:Key="DB.Start">Başlat</sys:String>
+<sys:String x:Key="DB.Stop">Durdur</sys:String>
+<sys:String x:Key="DB.Profile.Quick">Hızlı (256 MB)</sys:String>
+<sys:String x:Key="DB.Profile.Normal">Normal (1 GB)</sys:String>
+<sys:String x:Key="DB.Profile.Thorough">Kapsamlı (4 GB)</sys:String>
+<sys:String x:Key="DB.Idle">Bir sürücü seçip Başlat'a bas. Test o sürücüye geçici bir dosya yazar ve bitince siler.</sys:String>
+<sys:String x:Key="DB.Preparing">Test dosyası hazırlanıyor…  {0:0} MB/sn</sys:String>
+<sys:String x:Key="DB.Running">Test {0}/{1}: {2} {3}  ·  tekrar {4}/{5}  ·  {6:0} MB/sn</sys:String>
+<sys:String x:Key="DB.Read">okuma</sys:String>
+<sys:String x:Key="DB.Write">yazma</sys:String>
+<sys:String x:Key="DB.Done">Bitti. Test dosyası silindi.</sys:String>
+<sys:String x:Key="DB.Stopped">Durduruldu. Test dosyası silindi.</sys:String>
+<sys:String x:Key="DB.Failed">Test başarısız oldu: {0}</sys:String>
+<sys:String x:Key="DB.NoSpace">Bu test boyutu için sürücüde yeterli boş alan yok (yaklaşık {0} gerekli).</sys:String>
+<sys:String x:Key="DB.NoDrive">Sürücü bulunamadı.</sys:String>
+<sys:String x:Key="DB.DriveItem">{0}  {1}  ·  {2}  ·  {3} boş</sys:String>
+<sys:String x:Key="DB.SeqRead">Sıralı okuma</sys:String>
+<sys:String x:Key="DB.SeqWrite">Sıralı yazma</sys:String>
+<sys:String x:Key="DB.RndRead">Rastgele okuma</sys:String>
+<sys:String x:Key="DB.RndWrite">Rastgele yazma</sys:String>
+<sys:String x:Key="DB.SeqReadTip">Büyük dosyaları okuma: film kopyalama, oyun seviyesi yükleme.</sys:String>
+<sys:String x:Key="DB.SeqWriteTip">Büyük dosyaları yazma: oyun kurma, video kaydetme.</sys:String>
+<sys:String x:Key="DB.RndReadTip">Küçük parçaları tek tek okuma. Windows'un açılması ve uygulamaların başlaması buna benzer.</sys:String>
+<sys:String x:Key="DB.RndWriteTip">Küçük parçaları yazma: ayarlar, tarayıcı önbelleği, veritabanları.</sys:String>
+<sys:String x:Key="DB.GraphTitle">Test sırasındaki hız</sys:String>
+<sys:String x:Key="DB.GraphScale">grafiğin tepesi = {0:0} MB/sn</sys:String>
+<sys:String x:Key="DB.Advanced">Gelişmiş</sys:String>
+<sys:String x:Key="DB.Size">Test dosyası boyutu</sys:String>
+<sys:String x:Key="DB.Passes">Tekrar sayısı (en iyisi sayılır)</sys:String>
+<sys:String x:Key="DB.Col.Test">Test</sys:String>
+<sys:String x:Key="DB.Col.Read">Okuma</sys:String>
+<sys:String x:Key="DB.Col.ReadIops">Okuma IOPS</sys:String>
+<sys:String x:Key="DB.Col.ReadLat">Okuma gecikmesi</sys:String>
+<sys:String x:Key="DB.Col.Write">Yazma</sys:String>
+<sys:String x:Key="DB.Col.WriteIops">Yazma IOPS</sys:String>
+<sys:String x:Key="DB.Col.WriteLat">Yazma gecikmesi</sys:String>
+<sys:String x:Key="DB.Note">SEQ1M Q8T1: 1 MiB'lık parçalar, aynı anda 8 istek. RND4K Q1T1: rastgele yerlerde 4 KiB'lık parçalar, aynı anda tek istek. Windows dosya önbelleği devre dışı bırakılır, yani sayılar diskin kendi hızıdır. Test sırasında diski kullanan başka programlar sonucu düşürür.</sys:String>
 </ResourceDictionary>

@@ -20,7 +20,7 @@ public partial class MainWindow : Window
     static readonly TimeSpan ExitedRowLifetime = TimeSpan.FromSeconds(10); // how long an exited process stays listed
 
     // Page indexes (TabItem order in MainWindow.xaml; the menu items carry them as Tag).
-    const int PagePerformance = 1, PageUsers = 3, PageConnections = 4, PageSources = 10, PageSettings = 11, PageSystemInfo = 12, PagePower = 13;
+    const int PagePerformance = 1, PageUsers = 3, PageConnections = 4, PageSources = 10, PageSettings = 11, PageSystemInfo = 12, PagePower = 13, PageDiskBench = 14;
     public const int PageDisk = 9;
 
     // Text keys of the pages that can be the start page, in page order.
@@ -609,6 +609,7 @@ public partial class MainWindow : Window
         if (Nav.SelectedItem is ListBoxItem item && item != NavMore && item.Tag is string tag) Pages.SelectedIndex = int.Parse(tag);
         if (Pages.SelectedIndex == PageSystemInfo) SysInfo.Show();
         if (Pages.SelectedIndex == PagePower) PowerPage.Show();
+        if (Pages.SelectedIndex == PageDiskBench) BenchPage.Show();
         if (Pages.SelectedIndex == PagePerformance)
         {
             Perf.Show();
@@ -677,6 +678,7 @@ public partial class MainWindow : Window
         Perf.Relocalize();
         SysInfo.Relocalize();
         PowerPage.Relocalize();
+        BenchPage.Relocalize();
         CpuGraph.ToolTip = Loc.T("Hist.Hint");
         if (HistoryActive) RefreshHistoryList();
         if (lastFrame is not null && !replaying) ShowFrame(lastFrame);
@@ -803,6 +805,7 @@ public partial class MainWindow : Window
     {
         Appearance.Changed -= Relocalize;
         Appearance.Changed -= ApplyTitleBar;
+        BenchPage.Cancel();
         collector.Dispose();
         recorder.Dispose();
         settings.Save();
