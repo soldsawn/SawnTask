@@ -544,6 +544,23 @@
                                         <CheckBox x:Name="SmoothBox" Style="{StaticResource Switch}" Content="{DynamicResource Set.Smooth}"
                                                   Checked="Graphs_Changed" Unchecked="Graphs_Changed"/>
                                         <TextBlock Style="{StaticResource Note}" Text="{DynamicResource Set.SmoothNote}" Margin="0,6,0,0"/>
+                                        <Grid Margin="0,16,0,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="170"/>
+                                                <ColumnDefinition/>
+                                            </Grid.ColumnDefinitions>
+                                            <TextBlock Text="{DynamicResource Set.HistoryLength}" VerticalAlignment="Center" TextWrapping="Wrap"/>
+                                            <ComboBox x:Name="HistoryBox" Grid.Column="1" MaxWidth="240" SelectionChanged="Graphs_Changed">
+                                                <ComboBoxItem Content="{DynamicResource Set.History5}" Tag="5"/>
+                                                <ComboBoxItem Content="{DynamicResource Set.History10}" Tag="10"/>
+                                                <ComboBoxItem Content="{DynamicResource Set.History30}" Tag="30"/>
+                                                <ComboBoxItem Content="{DynamicResource Set.History60}" Tag="60"/>
+                                            </ComboBox>
+                                        </Grid>
+                                        <TextBlock Style="{StaticResource Note}" Text="{DynamicResource Set.HistoryNote}" Margin="0,6,0,12"/>
+                                        <CheckBox x:Name="CompressBox" Style="{StaticResource Switch}" Content="{DynamicResource Set.Compress}"
+                                                  Checked="Graphs_Changed" Unchecked="Graphs_Changed"/>
+                                        <TextBlock Style="{StaticResource Note}" Text="{DynamicResource Set.CompressNote}" Margin="0,6,0,0"/>
                                     </StackPanel>
                                 </Border>
                             </StackPanel>

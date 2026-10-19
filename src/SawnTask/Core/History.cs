@@ -3,7 +3,7 @@ namespace SawnTask.Core;
 // Fixed-size ring of values. NaN marks a gap (not measured, or a graph break).
 public sealed class Series
 {
-    readonly double[] buffer;
+    double[] buffer;
     int head;
 
     public Series(int capacity) => buffer = new double[capacity];
@@ -28,6 +28,18 @@ public sealed class Series
         head = 0;
         Count = 0;
         Total = 0;
+    }
+
+    // A new capacity; the newest values are kept (Total keeps counting, so sample numbers stay valid).
+    public void Resize(int capacity)
+    {
+        if (capacity == buffer.Length) return;
+        var fresh = new double[capacity];
+        int keep = Math.Min(Count, capacity);
+        for (int i = 0; i < keep; i++) fresh[i] = this[Count - keep + i];
+        buffer = fresh;
+        head = keep % capacity;
+        Count = keep;
     }
 
     public double MaxValue()
@@ -104,6 +116,12 @@ public sealed class History
         while (Cores.Count < cores) Cores.Add(new Series(coreCapacity));
         for (int i = 0; i < Cores.Count; i++)
             Cores[i].Add(i < cores ? f.Cores![i] : double.NaN);
+    }
+
+    // A longer or shorter history for the main graphs (the per-core graphs keep their length).
+    public void Resize(int capacity)
+    {
+        foreach (var s in new[] { Cpu, CpuKernel, Mem, NetRx, NetTx, DiskActive, Gpu, CpuTemp, CpuPower }) s.Resize(capacity);
     }
 
     public void Clear()

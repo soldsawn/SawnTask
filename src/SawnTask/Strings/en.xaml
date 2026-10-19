@@ -376,6 +376,17 @@
 <sys:String x:Key="Set.Smooth">Smooth graph curves</sys:String>
 <sys:String x:Key="Set.SmoothNote">Draws curves instead of straight segments between samples. Curves never go above the top or below zero.</sys:String>
 <sys:String x:Key="Set.StartPage">Default start page</sys:String>
+<sys:String x:Key="Set.HistoryLength">History length</sys:String>
+<sys:String x:Key="Set.History5">5 minutes</sys:String>
+<sys:String x:Key="Set.History10">10 minutes</sys:String>
+<sys:String x:Key="Set.History30">30 minutes</sys:String>
+<sys:String x:Key="Set.History60">60 minutes</sys:String>
+<sys:String x:Key="Set.HistoryNote">How far back the Summary graphs and the CPU history reach, at the current update speed. Longer history uses a little more memory.</sys:String>
+<sys:String x:Key="Set.Compress">Compress older history</sys:String>
+<sys:String x:Key="Set.CompressNote">Squeezes the older part of the graphs towards the left so the newest seconds stay wide. Turn off to draw the whole history at one scale.</sys:String>
+<sys:String x:Key="Hist.Ago">{0} ago</sys:String>
+<sys:String x:Key="Hist.Range">{0} to {1} ago  ·  average {2}  ·  lowest {3}  ·  highest {4}</sys:String>
+<sys:String x:Key="Hist.Point">{0} ago  ·  {1}</sys:String>
 
 <!-- Disk speed test -->
 <sys:String x:Key="Nav.DiskBench">Disk speed</sys:String>

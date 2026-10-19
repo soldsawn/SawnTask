@@ -7,7 +7,7 @@ namespace SawnTask.Core;
 // newest sample they appeared in.
 public sealed class ProcessHistory(int capacity)
 {
-    readonly (long Index, (ProcessKey Key, float Cpu)[] Entries)?[] ring = new (long, (ProcessKey, float)[])?[capacity];
+    (long Index, (ProcessKey Key, float Cpu)[] Entries)?[] ring = new (long, (ProcessKey, float)[])?[capacity];
     readonly Dictionary<ProcessKey, ProcessSample> info = [];
     int added;
 
@@ -22,6 +22,19 @@ public sealed class ProcessHistory(int capacity)
             }
         ring[index % capacity] = (index, entries.ToArray());
         if (++added % capacity == 0) Prune();
+    }
+
+    // A new capacity: the samples are placed again by their number; where two share a slot the newer wins.
+    public void Resize(int newCapacity)
+    {
+        if (newCapacity == capacity) return;
+        var old = ring;
+        ring = new (long, (ProcessKey, float)[])?[newCapacity];
+        capacity = newCapacity;
+        foreach (var tick in old)
+            if (tick is { } t && (ring[t.Index % capacity] is not { } there || there.Index < t.Index))
+                ring[t.Index % capacity] = t;
+        Prune();
     }
 
     public void Clear()

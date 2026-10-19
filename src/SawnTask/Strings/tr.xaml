@@ -376,6 +376,17 @@
 <sys:String x:Key="Set.Smooth">Yumuşak grafik eğrileri</sys:String>
 <sys:String x:Key="Set.SmoothNote">Örnekler arasında düz çizgiler yerine eğriler çizer. Eğriler asla tepeden taşmaz veya sıfırın altına inmez.</sys:String>
 <sys:String x:Key="Set.StartPage">Varsayılan başlangıç sayfası</sys:String>
+<sys:String x:Key="Set.HistoryLength">Geçmiş uzunluğu</sys:String>
+<sys:String x:Key="Set.History5">5 dakika</sys:String>
+<sys:String x:Key="Set.History10">10 dakika</sys:String>
+<sys:String x:Key="Set.History30">30 dakika</sys:String>
+<sys:String x:Key="Set.History60">60 dakika</sys:String>
+<sys:String x:Key="Set.HistoryNote">Özet grafikleri ve CPU geçmişi, geçerli güncelleme hızında ne kadar geriye gider. Daha uzun geçmiş biraz daha fazla bellek kullanır.</sys:String>
+<sys:String x:Key="Set.Compress">Eski geçmişi sıkıştır</sys:String>
+<sys:String x:Key="Set.CompressNote">Grafiklerin eski kısmını sola doğru sıkıştırır, böylece en yeni saniyeler geniş kalır. Kapatınca tüm geçmiş aynı ölçekte çizilir.</sys:String>
+<sys:String x:Key="Hist.Ago">{0} önce</sys:String>
+<sys:String x:Key="Hist.Range">{0} – {1} önce  ·  ortalama {2}  ·  en düşük {3}  ·  en yüksek {4}</sys:String>
+<sys:String x:Key="Hist.Point">{0} önce  ·  {1}</sys:String>
 
 <!-- Disk hız testi -->
 <sys:String x:Key="Nav.DiskBench">Disk hızı</sys:String>

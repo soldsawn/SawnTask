@@ -13,6 +13,8 @@ public sealed class Settings
     public bool SmoothCurves { get; set; } = true;
     public int StartPage { get; set; }            // page index (TabItem order in MainWindow.xaml)
     public bool NavMoreOpen { get; set; }         // the "More" group in the left navigation is unfolded
+    public int HistoryMinutes { get; set; } = 5;  // how much history the Summary graphs keep (at the current update speed)
+    public bool CompressHistory { get; set; } = true; // old history squeezed to the left (see LineGraph.Compress)
 
     static string FilePath => Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SawnTask", "settings.json");

@@ -15,7 +15,9 @@ namespace SawnTask;
 
 public partial class MainWindow : Window
 {
-    const int HistoryLength = 600; // samples kept by the main graphs (about 5 minutes at 0.5 s)
+    // The Summary graphs keep HistoryMinutes of samples at the current update speed (never fewer than MinHistory).
+    const int MinHistory = 120, MaxHistory = 20000;
+    static int HistoryCapacity(int minutes, int intervalMs) => Math.Clamp(minutes * 60000 / Math.Max(250, intervalMs), MinHistory, MaxHistory);
     const int CoreHistoryLength = 120; // the per-core graphs stay linear and short
     static readonly TimeSpan ExitedRowLifetime = TimeSpan.FromSeconds(10); // how long an exited process stays listed
 
@@ -36,8 +38,8 @@ public partial class MainWindow : Window
     static readonly Color KernelColor = Color.FromRgb(0xEF, 0x53, 0x50);
 
     readonly Settings settings = Settings.Load();
-    readonly History history = new(HistoryLength, CoreHistoryLength);
-    readonly ProcessHistory processHistory = new(HistoryLength);
+    readonly History history;
+    readonly ProcessHistory processHistory;
     readonly Recorder recorder = new();
     readonly Collector collector = new();
     readonly ObservableCollection<ProcessRow> processes = [];
@@ -61,9 +63,12 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        int capacity = HistoryCapacity(settings.HistoryMinutes, settings.UpdateSpeedMs);
+        history = new History(capacity, CoreHistoryLength);
+        processHistory = new ProcessHistory(capacity);
         InitializeComponent();
 
-        foreach (var g in SummaryGraphs) g.Compress = true;
+        foreach (var g in SummaryGraphs) g.Compress = settings.CompressHistory;
         Perf.Bind(history);
         TopScroll.SizeChanged += (_, e) =>
         {
@@ -77,6 +82,13 @@ public partial class MainWindow : Window
         CpuGraph.Cursor = System.Windows.Input.Cursors.Cross;
         CpuGraph.SelectionChanged += CpuGraph_SelectionChanged;
         CpuGraph.HoverChanged += CpuGraph_SelectionChanged;
+        foreach (var small in new[] { MemGraph, GpuGraph })
+        {
+            small.Selectable = true;
+            small.Cursor = System.Windows.Input.Cursors.Cross;
+            small.SelectionChanged += SmallGraph_HistoryChanged;
+            small.HoverChanged += SmallGraph_HistoryChanged;
+        }
         historyTimer.Tick += (_, _) => { historyTimer.Stop(); RefreshHistoryList(); };
         CpuGraph.AddLine(history.Cpu, CpuColor);
         CpuGraph.AddLine(history.CpuKernel, KernelColor, 1);
@@ -128,6 +140,8 @@ public partial class MainWindow : Window
         SettingsSpeedBox.SelectedIndex = speedIndex;
         FpsBox.SelectedItem = FpsBox.Items.Cast<ComboBoxItem>().FirstOrDefault(i => int.Parse((string)i.Tag) == settings.GraphFps) ?? FpsBox.Items[2];
         SmoothBox.IsChecked = settings.SmoothCurves;
+        HistoryBox.SelectedItem = HistoryBox.Items.Cast<ComboBoxItem>().FirstOrDefault(i => int.Parse((string)i.Tag) == settings.HistoryMinutes) ?? HistoryBox.Items[0];
+        CompressBox.IsChecked = settings.CompressHistory;
         LineGraph.Fps = settings.GraphFps;
         LineGraph.SmoothCurves = settings.SmoothCurves;
         // Start page choices: every page except Settings itself, named like the menu.
@@ -203,22 +217,12 @@ public partial class MainWindow : Window
         PowerValue.Text = f.CpuPower is double pw ? $"{pw:0.0} W" : Fmt.Missing;
         PowerDetail.Text = Loc.T("Sum.CpuPackage");
         MemValue.Text = Fmt.Pct(f.Mem);
-        MemDetail.Text = Loc.F("Sum.MemDetail", Fmt.Bytes(f.MemUsed), Fmt.Bytes(f.MemTotal));
         NetValue.Text = Fmt.Rate(f.NetRx);
         NetDetail.Text = Loc.F("Sum.NetDetail", Fmt.Rate(f.NetRx), Fmt.Rate(f.NetTx), Fmt.Rate(NetGraph.CurrentMax));
         DiskValue.Text = Fmt.Pct(f.DiskActive);
         DiskDetail.Text = Loc.F("Sum.DiskDetail", Fmt.Rate(f.DiskRead), Fmt.Rate(f.DiskWrite));
         GpuValue.Text = Fmt.Pct(f.Gpu);
-        GpuDetail.Text = f.Gpus.FirstOrDefault() is GpuDevice g
-            ? string.Join(" · ", new[]
-            {
-                g.Name.Replace("NVIDIA GeForce ", ""),
-                g.TempC is double gt ? $"{gt:0} °C" : null,
-                g.PowerW is double gw ? $"{gw:0.0} W" : null,
-                g.CoreMHz is double mhz ? $"{mhz:0} MHz" : null,
-                g.VramUsed is ulong used && g.VramTotal is ulong total ? $"{Fmt.Bytes(used)} / {Fmt.Bytes(total)}" : null,
-            }.Where(x => x is not null))
-            : Loc.T("Sum.GpuFallback");
+        ShowMemGpuDetail(f);
         if (!HistoryActive)
         {
             SmoothTopHeat(f.Top);
@@ -237,6 +241,63 @@ public partial class MainWindow : Window
             if (newSample) graph.Advance(TimeSpan.FromMilliseconds(f.IntervalMs));
             else graph.InvalidateVisual();
         }
+    }
+
+    // ---- Memory and GPU history (on the Summary page) ----
+    //
+    // Hover a graph for one moment, click to pin it, drag for a period: the line under the graph then
+    // shows the value at that time (for a period: average, lowest, highest) instead of the live details.
+
+    void ShowMemGpuDetail(SampleFrame f)
+    {
+        MemDetail.Text = SmallHistoryText(MemGraph, history.Mem, f)
+                         ?? Loc.F("Sum.MemDetail", Fmt.Bytes(f.MemUsed), Fmt.Bytes(f.MemTotal));
+        GpuDetail.Text = SmallHistoryText(GpuGraph, history.Gpu, f)
+                         ?? (f.Gpus.FirstOrDefault() is GpuDevice g
+                             ? string.Join(" · ", new[]
+                             {
+                                 g.Name.Replace("NVIDIA GeForce ", ""),
+                                 g.TempC is double gt ? $"{gt:0} °C" : null,
+                                 g.PowerW is double gw ? $"{gw:0.0} W" : null,
+                                 g.CoreMHz is double mhz ? $"{mhz:0} MHz" : null,
+                                 g.VramUsed is ulong used && g.VramTotal is ulong total ? $"{Fmt.Bytes(used)} / {Fmt.Bytes(total)}" : null,
+                             }.Where(x => x is not null))
+                             : Loc.T("Sum.GpuFallback"));
+    }
+
+    // null when nothing is picked on that graph.
+    static string? SmallHistoryText(LineGraph graph, Series series, SampleFrame f)
+    {
+        var range = graph.Selection ?? (graph.Hover is long h ? (h, h) : ((long, long)?)null);
+        if (range is not { } sel) return null;
+        long first = series.Total - series.Count;
+        if (sel.To < first) // the picked moment has scrolled out of the graph
+        {
+            graph.Selection = null;
+            return null;
+        }
+        long from = Math.Max(sel.From, first);
+        double sum = 0, min = double.MaxValue, max = double.MinValue;
+        int n = 0;
+        for (long i = from; i <= sel.To; i++)
+        {
+            double v = series[(int)(i - first)];
+            if (double.IsNaN(v)) continue;
+            sum += v;
+            min = Math.Min(min, v);
+            max = Math.Max(max, v);
+            n++;
+        }
+        if (n == 0) return null;
+        string Ago(long index) => Duration((series.Total - 1 - index) * f.IntervalMs / 1000.0);
+        return sel.From == sel.To
+            ? Loc.F("Hist.Point", Ago(sel.To), Fmt.Pct(sum))
+            : Loc.F("Hist.Range", Ago(from), Ago(sel.To), Fmt.Pct(sum / n), Fmt.Pct(min), Fmt.Pct(max));
+    }
+
+    void SmallGraph_HistoryChanged()
+    {
+        if (lastFrame is not null) ShowMemGpuDetail(lastFrame);
     }
 
     void UpdateProcesses(Snapshot s)
@@ -701,14 +762,29 @@ public partial class MainWindow : Window
         Appearance.Apply(settings.Theme, settings.Language); // raises Changed -> Relocalize
     }
 
+    // The graphs keep the chosen number of minutes at the given update speed; the data already
+    // collected stays (the newest part of it if the history got shorter).
+    void ApplyHistoryLength(int intervalMs)
+    {
+        int capacity = HistoryCapacity(settings.HistoryMinutes, intervalMs);
+        if (capacity == history.Cpu.Capacity) return;
+        history.Resize(capacity);
+        processHistory.Resize(capacity);
+        foreach (var graph in SummaryGraphs) graph.InvalidateVisual();
+    }
+
     void Graphs_Changed(object sender, RoutedEventArgs e)
     {
         if (loadingSettings || FpsBox.SelectedItem is not ComboBoxItem fps) return;
         settings.GraphFps = int.Parse((string)fps.Tag);
         settings.SmoothCurves = SmoothBox.IsChecked == true;
+        if (HistoryBox.SelectedItem is ComboBoxItem minutes) settings.HistoryMinutes = int.Parse((string)minutes.Tag);
+        settings.CompressHistory = CompressBox.IsChecked == true;
         settings.Save();
         LineGraph.Fps = settings.GraphFps;
         LineGraph.SmoothCurves = settings.SmoothCurves;
+        foreach (var graph in SummaryGraphs) graph.Compress = settings.CompressHistory;
+        ApplyHistoryLength(collector.IntervalMs);
         Relocalize(); // redraws every graph with the new style
     }
 
@@ -742,6 +818,7 @@ public partial class MainWindow : Window
         {
             collector.IntervalMs = ms;
             settings.UpdateSpeedMs = ms;
+            ApplyHistoryLength(ms); // the same minutes need another number of samples
         }
         if (SettingsSpeedBox.SelectedIndex != SpeedBox.SelectedIndex) SettingsSpeedBox.SelectedIndex = SpeedBox.SelectedIndex;
     }
@@ -791,7 +868,7 @@ public partial class MainWindow : Window
         processHistory.Clear();
         foreach (var frame in frames) history.Append(frame);
         ShowFrame(frames[^1]);
-        ReplayText.Text = Loc.F("Sum.Replay", Path.GetFileName(dialog.FileName), frames.Count, history.GraphBreaks, HistoryLength);
+        ReplayText.Text = Loc.F("Sum.Replay", Path.GetFileName(dialog.FileName), frames.Count, history.GraphBreaks, history.Cpu.Capacity);
         ReplayBanner.Visibility = Visibility.Visible;
         LiveBtn.Visibility = Visibility.Visible;
         Page = 0;
