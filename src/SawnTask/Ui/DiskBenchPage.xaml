@@ -90,7 +90,9 @@
                             <TextBlock x:Name="GraphScale" HorizontalAlignment="Right" Foreground="{DynamicResource Dim}" VerticalAlignment="Bottom"/>
                         </Grid>
                         <ui:LineGraph x:Name="Graph" Height="150" Margin="0,8,0,0" GridColumns="12" GridRows="4" VisibleSamples="240"
-                                      AutoScale="True" MinAutoMax="100"/>
+                                      AutoScale="True" MinAutoMax="100" LogMin="0.1"/>
+                        <!-- Which colour is which test: filled in by BuildLegend. -->
+                        <WrapPanel x:Name="GraphLegend" Margin="0,8,0,0"/>
                     </StackPanel>
                 </Border>
 

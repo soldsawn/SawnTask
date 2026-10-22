@@ -56,6 +56,15 @@ public sealed class LineGraph : FrameworkElement
     public (Color Color, string[] Labels)? RightAxis { get; set; }
     const double AxisWidth = 38;
 
+    // Logarithmic vertical axis (the disk speed test, where 5000 MB/s and 50 MB/s share a graph).
+    // When LogMin > 0 the axis spans whole powers of ten: from the decade of the smallest value
+    // (never below LogMin) to the decade above the largest, with one grid line and one left-hand
+    // label per decade. AutoScale's MinAutoMax still sets the least top.
+    public double LogMin { get; set; }
+    bool Log => LogMin > 0;
+    bool HasLeftAxis => LeftAxis is not null || Log;
+    double logBottom = 1;
+
     // Compressed time axis (a long history without making recent data tiny):
     // the newest samples are drawn wide and older ones are squeezed together towards the
     // left, logarithmically. The vertical grid then marks equal time steps (GridSamples),
@@ -96,7 +105,7 @@ public sealed class LineGraph : FrameworkElement
     }
 
     (double Left, double Width) Plot() =>
-        (LeftAxis is null ? 0 : AxisWidth, ActualWidth - (LeftAxis is null ? 0 : AxisWidth) - (RightAxis is null ? 0 : AxisWidth));
+        (HasLeftAxis ? AxisWidth : 0, ActualWidth - (HasLeftAxis ? AxisWidth : 0) - (RightAxis is null ? 0 : AxisWidth));
 
     // The sample under a mouse position: the opposite of XOfAge in OnRender.
     long SampleAt(double mouseX)
@@ -248,10 +257,34 @@ public sealed class LineGraph : FrameworkElement
         double w = ActualWidth, h = ActualHeight;
         if (w < 4 || h < 4) return;
 
-        double left = LeftAxis is null ? 0 : AxisWidth, right = RightAxis is null ? 0 : AxisWidth;
+        double max = Max;
+        if (AutoScale)
+            max = Math.Max(MinAutoMax, lines.Count == 0 ? 0 : lines.Max(l => l.Series.MaxValue()) * 1.15);
+        var leftAxis = LeftAxis;
+        int gridRows = GridRows;
+        if (Log)
+        {
+            // Whole decades: e.g. 10 .. 10000 MB/s for an NVMe drive, 0.1 .. 1000 for a hard disk.
+            double smallest = double.MaxValue;
+            foreach (var (series, _, _) in lines)
+                for (int i = 0; i < series.Count; i++)
+                    if (series[i] > 0 && series[i] < smallest) smallest = series[i];
+            int top = (int)Math.Ceiling(Math.Log10(max) - 1e-9);
+            int bottom = smallest == double.MaxValue ? top - 2 : (int)Math.Floor(Math.Log10(smallest));
+            bottom = Math.Clamp(bottom, (int)Math.Floor(Math.Log10(LogMin)), top - 2);
+            max = Math.Pow(10, top);
+            logBottom = Math.Pow(10, bottom);
+            gridRows = top - bottom;
+            var dim = (TryFindResource("Dim") as SolidColorBrush)?.Color ?? Colors.Gray;
+            leftAxis = (dim, Enumerable.Range(0, gridRows + 1).Select(i => Math.Pow(10, top - i))
+                .Select(v => v >= 1 ? v.ToString("0", System.Globalization.CultureInfo.InvariantCulture) : v.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture)).ToArray());
+        }
+        CurrentMax = max;
+
+        double left = leftAxis is null ? 0 : AxisWidth, right = RightAxis is null ? 0 : AxisWidth;
         if (left + right > 0)
         {
-            DrawAxis(dc, LeftAxis, 0, left, h, alignRight: true);
+            DrawAxis(dc, leftAxis, 0, left, h, alignRight: true);
             DrawAxis(dc, RightAxis, w - right, right, h, alignRight: false);
             dc.PushTransform(new TranslateTransform(left, 0));
             w -= left + right;
@@ -272,11 +305,6 @@ public sealed class LineGraph : FrameworkElement
             grid.BeginFigure(new Point(x1, y1), false, false);
             grid.LineTo(new Point(x2, y2), true, false);
         }
-
-        double max = Max;
-        if (AutoScale)
-            max = Math.Max(MinAutoMax, lines.Count == 0 ? 0 : lines.Max(l => l.Series.MaxValue()) * 1.15);
-        CurrentMax = max;
 
         int capacity = Window();
         double dx = w / (capacity - 1);
@@ -308,7 +336,7 @@ public sealed class LineGraph : FrameworkElement
             for (double x = gridShift; x < w; x += gridStep)
                 if (x > 1) GridLine(x, 0, x, h);
         }
-        for (int i = 1; i < GridRows; i++) GridLine(0, h * i / GridRows, w, h * i / GridRows);
+        for (int i = 1; i < gridRows; i++) GridLine(0, h * i / gridRows, w, h * i / gridRows);
         grid.Close();
         gridGeometry.Freeze();
         dc.DrawGeometry(null, gridPen, gridGeometry);
@@ -334,7 +362,7 @@ public sealed class LineGraph : FrameworkElement
         bool shiftOnly = !Compress;
         if (shiftOnly)
         {
-            var key = (stamp, w, h, max, lines.Count * 100000 + capacity);
+            var key = (stamp, w, h, max * (Log ? 1e6 / logBottom : 1), lines.Count * 100000 + capacity);
             if (key != cacheKey || cachedLines is null)
             {
                 cachedLines = BuildLines(w, h, max, 0, 0);
@@ -373,7 +401,9 @@ public sealed class LineGraph : FrameworkElement
             using (var g = geometry.Open())
             {
                 var run = new List<Point>();
-                double Y(double v) => h - 1 - Math.Clamp(v / (ownMax ?? max), 0, 1) * (h - 2);
+                double Y(double v) => h - 1 - Math.Clamp(Log && ownMax is null
+                    ? Math.Log10(Math.Max(v, logBottom) / logBottom) / Math.Log10(max / logBottom)
+                    : v / (ownMax ?? max), 0, 1) * (h - 2);
 
                 // On the compressed axis old samples are merged into buckets. The buckets are
                 // aligned to absolute sample numbers and sized by the (whole) age, so a sample

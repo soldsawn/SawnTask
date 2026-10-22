@@ -20,7 +20,21 @@ public partial class DiskBenchPage : UserControl
     const string SeqTest = "SEQ1M Q8T1", RndTest = "RND4K Q1T1";
     const long SpareBytes = 256L << 20; // free space kept beyond the test file
 
-    readonly Series live = new(240);
+    // The live graph has one line per test and direction (plus the preparing write), so each
+    // stretch is drawn in its test's colour: a line holds NaN (a gap) while another test runs.
+    // Read is the strong shade of a colour, write the light one.
+    static readonly Dictionary<string, (Color Read, Color Write)> TestColors = new()
+    {
+        ["SEQ1M Q8T1"] = (Color.FromRgb(0x1E, 0x88, 0xE5), Color.FromRgb(0x90, 0xCA, 0xF9)),
+        ["SEQ1M Q1T1"] = (Color.FromRgb(0x8E, 0x24, 0xAA), Color.FromRgb(0xCE, 0x93, 0xD8)),
+        ["RND4K Q32T1"] = (Color.FromRgb(0x43, 0xA0, 0x47), Color.FromRgb(0xA5, 0xD6, 0xA7)),
+        ["RND4K Q1T1"] = (Color.FromRgb(0xFB, 0x8C, 0x00), Color.FromRgb(0xFF, 0xCC, 0x80)),
+    };
+    static readonly Color PrepareColor = Color.FromRgb(0x9E, 0x9E, 0x9E);
+    const int GraphSamples = 240;
+
+    readonly Series prepareLine = new(GraphSamples);
+    readonly Dictionary<(string Test, bool Write), Series> testLines = [];
     readonly Dictionary<(string Test, bool Write), BenchResult> results = [];
     List<StorageDevices.Disk> disks = [];
     CancellationTokenSource? cancel;
@@ -36,7 +50,15 @@ public partial class DiskBenchPage : UserControl
     public DiskBenchPage()
     {
         InitializeComponent();
-        Graph.AddLine(live, Color.FromRgb(0x4F, 0xC3, 0xF7), 1.6);
+        Graph.AddLine(prepareLine, PrepareColor, 1.6);
+        foreach (var test in DiskBench.Tests)
+            foreach (bool write in new[] { false, true })
+            {
+                var line = new Series(GraphSamples);
+                testLines[(test.Name, write)] = line;
+                var (read, written) = TestColors[test.Name];
+                Graph.AddLine(line, write ? written : read, 1.6);
+            }
         loading = true;
         foreach (var (text, bytes) in Sizes) SizeBox.Items.Add(new ComboBoxItem { Content = text, Tag = bytes });
         foreach (int n in PassChoices) PassBox.Items.Add(new ComboBoxItem { Content = n.ToString(), Tag = n });
@@ -71,6 +93,42 @@ public partial class DiskBenchPage : UserControl
         ShowVerdict();
         ShowHealth();
         BuildHistory();
+        BuildLegend();
+    }
+
+    // "Sequential, many requests (SEQ1M Q8T1)": a plain name first, the usual benchmark name after it.
+    static string TestKey(string test, string prefix) => prefix + test.Replace(' ', '.');
+    static string TestLabel(string test) => Loc.F("DB.TestName", Loc.T(TestKey(test, "DB.T.")), test);
+
+    void BuildLegend()
+    {
+        GraphScale.Text = Loc.T("DB.GraphScale");
+        GraphLegend.Children.Clear();
+        void Swatch(Panel row, Color color, string text)
+        {
+            row.Children.Add(new Border { Width = 14, Height = 3, Background = new SolidColorBrush(color), VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(0, 0, 4, 0) });
+            row.Children.Add(new TextBlock { Text = text, Margin = new Thickness(0, 0, 10, 0) });
+        }
+        StackPanel Group(string? title)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 0, 14, 4) };
+            if (title is not null)
+            {
+                var name = new TextBlock { Text = title, Margin = new Thickness(0, 0, 8, 0) };
+                name.SetResourceReference(TextBlock.ForegroundProperty, "Dim"); // follows a theme switch
+                row.Children.Add(name);
+            }
+            GraphLegend.Children.Add(row);
+            return row;
+        }
+        foreach (var test in DiskBench.Tests)
+        {
+            var row = Group(TestLabel(test.Name));
+            row.ToolTip = Loc.T(TestKey(test.Name, "DB.TT."));
+            Swatch(row, TestColors[test.Name].Read, Loc.T("DB.Read"));
+            Swatch(row, TestColors[test.Name].Write, Loc.T("DB.Write"));
+        }
+        Swatch(Group(null), PrepareColor, Loc.T("DB.PrepareLine"));
     }
 
     // Stops a running test (the window is closing); the test file goes with it.
@@ -157,7 +215,8 @@ public partial class DiskBenchPage : UserControl
         results.Clear();
         verdict = null;
         ShowVerdict();
-        live.Clear();
+        prepareLine.Clear();
+        foreach (var line in testLines.Values) line.Clear();
         Graph.InvalidateVisual();
         UpdateCards();
         BuildTable();
@@ -225,9 +284,10 @@ public partial class DiskBenchPage : UserControl
         if (!running) return;
         if (p.LiveMBps > 0)
         {
-            live.Add(p.LiveMBps);
+            var active = p.Phase == "prepare" ? prepareLine : testLines.GetValueOrDefault((p.Test, p.Write)) ?? prepareLine;
+            prepareLine.Add(active == prepareLine ? p.LiveMBps : double.NaN);
+            foreach (var line in testLines.Values) line.Add(line == active ? p.LiveMBps : double.NaN);
             Graph.Advance(TimeSpan.FromMilliseconds(250));
-            GraphScale.Text = Loc.F("DB.GraphScale", Graph.CurrentMax);
         }
         if (p.Phase == "prepare")
         {
@@ -235,7 +295,7 @@ public partial class DiskBenchPage : UserControl
             return;
         }
         Progress.Value = ((p.Step - 1) * passes + (p.Pass - 1)) / (double)(p.Steps * passes);
-        SetStatus("DB.Running", p.Step, p.Steps, p.Test, Loc.T(p.Write ? "DB.Write" : "DB.Read"), p.Pass, p.Passes, p.LiveMBps);
+        SetStatus("DB.Running", p.Step, p.Steps, TestLabel(p.Test), Loc.T(p.Write ? "DB.Write" : "DB.Read"), p.Pass, p.Passes, p.LiveMBps);
     }
 
     void OnResult(BenchResult r)
@@ -433,7 +493,7 @@ public partial class DiskBenchPage : UserControl
         Table.ColumnDefinitions.Clear();
         string[] headers = ["DB.Col.Test", "DB.Col.Read", "DB.Col.ReadIops", "DB.Col.ReadLat", "DB.Col.Write", "DB.Col.WriteIops", "DB.Col.WriteLat"];
         for (int c = 0; c < headers.Length; c++)
-            Table.ColumnDefinitions.Add(new ColumnDefinition { Width = c == 0 ? new GridLength(1.4, GridUnitType.Star) : new GridLength(1, GridUnitType.Star) });
+            Table.ColumnDefinitions.Add(new ColumnDefinition { Width = c == 0 ? new GridLength(2.2, GridUnitType.Star) : new GridLength(1, GridUnitType.Star) });
 
         void Cell(int row, int col, string text, bool header = false)
         {
@@ -456,7 +516,7 @@ public partial class DiskBenchPage : UserControl
         {
             Table.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             string name = DiskBench.Tests[i].Name;
-            Cell(i + 1, 0, name);
+            Cell(i + 1, 0, TestLabel(name));
             for (int w = 0; w < 2; w++)
             {
                 var r = Get(name, w == 1);

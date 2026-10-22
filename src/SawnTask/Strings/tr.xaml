@@ -65,6 +65,18 @@
 <sys:String x:Key="SI.Installed">Kurulu bellek</sys:String>
 <sys:String x:Key="SI.Modules">Bellek modülleri</sys:String>
 <sys:String x:Key="SI.Module">Modül</sys:String>
+<sys:String x:Key="SI.MemSpeedRated">{0} MT/s (desteklenen {1})</sys:String>
+<sys:String x:Key="SI.MemSpeedCheck">Hız durumu</sys:String>
+<sys:String x:Key="SI.MemMatch">Modül uyumu</sys:String>
+<sys:String x:Key="SI.MemAtRated">Desteklenen hızında çalışıyor ({0} MT/s).</sys:String>
+<sys:String x:Key="SI.MemBelow">Desteklenen hızın altında çalışıyor: {0} / {1} MT/s. Nedeni işlemcinin bellek hız sınırı ya da bir BIOS ayarı olabilir.</sys:String>
+<sys:String x:Key="SI.MemSlowest">Modüllerin desteklediği hızlar farklı ({1} ve {0} MT/s); hepsi en yavaş modülün hızında, {0} MT/s çalışıyor. Bu normaldir.</sys:String>
+<sys:String x:Key="SI.MemAbove">Desteklenen hızın üstünde çalışıyor: {0} MT/s (desteklenen {1}). XMP veya EXPO profili açık.</sys:String>
+<sys:String x:Key="SI.MemSingle">Tek modül: bellek tek kanalda çalışıyor. Aynı boyutta ikinci bir modül bellek bant genişliğini iki katına çıkarır.</sys:String>
+<sys:String x:Key="SI.MemSameSize">Aynı boyut (her biri {0}): doğru yuvalarda çift kanal belleğin tamamını kapsar.</sys:String>
+<sys:String x:Key="SI.MemPairs">Eşleşen çiftler ({0}): doğru yuvalarda çift kanal belleğin tamamını kapsar.</sys:String>
+<sys:String x:Key="SI.MemMixedSize2">Farklı boyutlar ({0}): çoğu sistemde ilk {1} çift kanalda, kalan {2} tek kanalda çalışır. Sorun değil; sadece o kısım biraz daha yavaştır.</sys:String>
+<sys:String x:Key="SI.MemMixedSize">Farklı boyutlar ({0}): belleğin bir kısmı tek kanalda çalışabilir.</sys:String>
 <sys:String x:Key="SI.Adapter">Adaptör</sys:String>
 <sys:String x:Key="SI.Driver">Sürücü</sys:String>
 <sys:String x:Key="SI.VideoMemory">Video belleği</sys:String>
@@ -453,7 +465,17 @@
 <sys:String x:Key="DB.RndReadTip">Küçük parçaları tek tek okuma. Windows'un açılması ve uygulamaların başlaması buna benzer.</sys:String>
 <sys:String x:Key="DB.RndWriteTip">Küçük parçaları yazma: ayarlar, tarayıcı önbelleği, veritabanları.</sys:String>
 <sys:String x:Key="DB.GraphTitle">Test sırasındaki hız</sys:String>
-<sys:String x:Key="DB.GraphScale">grafiğin tepesi = {0:0} MB/sn</sys:String>
+<sys:String x:Key="DB.PrepareLine">test dosyası hazırlanıyor</sys:String>
+<sys:String x:Key="DB.TestName">{0} ({1})</sys:String>
+<sys:String x:Key="DB.T.SEQ1M.Q8T1">Sıralı, çoklu istek</sys:String>
+<sys:String x:Key="DB.T.SEQ1M.Q1T1">Sıralı, tek istek</sys:String>
+<sys:String x:Key="DB.T.RND4K.Q32T1">Rastgele, çoklu istek</sys:String>
+<sys:String x:Key="DB.T.RND4K.Q1T1">Rastgele, tek istek</sys:String>
+<sys:String x:Key="DB.TT.SEQ1M.Q8T1">Art arda 1 MiB'lık parçalar, aynı anda 8 istek: büyük dosya kopyalama.</sys:String>
+<sys:String x:Key="DB.TT.SEQ1M.Q1T1">Art arda 1 MiB'lık parçalar, aynı anda tek istek.</sys:String>
+<sys:String x:Key="DB.TT.RND4K.Q32T1">Rastgele yerlerde 4 KiB'lık parçalar, aynı anda 32 istek: birçok programın kullandığı yoğun bir disk.</sys:String>
+<sys:String x:Key="DB.TT.RND4K.Q1T1">Rastgele yerlerde 4 KiB'lık parçalar, aynı anda tek istek: Windows'un açılması, uygulamaların başlaması.</sys:String>
+<sys:String x:Key="DB.GraphScale">MB/sn, logaritmik ölçek (her çizgi 10 kat)</sys:String>
 <sys:String x:Key="DB.Advanced">Gelişmiş</sys:String>
 <sys:String x:Key="DB.Size">Test dosyası boyutu</sys:String>
 <sys:String x:Key="DB.Passes">Tekrar sayısı (en iyisi sayılır)</sys:String>

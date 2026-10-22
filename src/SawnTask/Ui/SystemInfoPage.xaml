@@ -15,7 +15,8 @@
             </Grid.ColumnDefinitions>
             <ListBox x:Name="Categories" Background="{DynamicResource Panel}" BorderThickness="0" Margin="0,0,10,0"
                      ScrollViewer.HorizontalScrollBarVisibility="Disabled" SelectionChanged="Categories_SelectionChanged"/>
-            <DataGrid x:Name="Table" Grid.Column="1" SelectionUnit="FullRow">
+            <!-- Rows grow for long values that wrap (the memory notes); the others keep the usual 24 px. -->
+            <DataGrid x:Name="Table" Grid.Column="1" SelectionUnit="FullRow" RowHeight="NaN" MinRowHeight="24">
                 <DataGrid.Columns>
                     <DataGridTextColumn ui:LocHeader.Key="SI.Property" Binding="{Binding Property}" Width="260">
                         <DataGridTextColumn.ElementStyle>

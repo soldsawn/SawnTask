@@ -65,6 +65,18 @@
 <sys:String x:Key="SI.Installed">Installed memory</sys:String>
 <sys:String x:Key="SI.Modules">Memory modules</sys:String>
 <sys:String x:Key="SI.Module">Module</sys:String>
+<sys:String x:Key="SI.MemSpeedRated">{0} MT/s (rated {1})</sys:String>
+<sys:String x:Key="SI.MemSpeedCheck">Speed check</sys:String>
+<sys:String x:Key="SI.MemMatch">Module match</sys:String>
+<sys:String x:Key="SI.MemAtRated">Running at the rated speed ({0} MT/s).</sys:String>
+<sys:String x:Key="SI.MemBelow">Running below the rated speed: {0} of {1} MT/s. The processor's memory speed limit or a BIOS setting can cause this.</sys:String>
+<sys:String x:Key="SI.MemSlowest">The modules are rated for different speeds ({1} and {0} MT/s); all of them run at the slowest one's {0} MT/s. This is normal.</sys:String>
+<sys:String x:Key="SI.MemAbove">Running above the rated speed: {0} MT/s (rated {1}). An XMP or EXPO profile is on.</sys:String>
+<sys:String x:Key="SI.MemSingle">One module: the memory runs single-channel. A second module of the same size would double the memory bandwidth.</sys:String>
+<sys:String x:Key="SI.MemSameSize">Same size ({0} each): in the right slots, dual-channel covers all of the memory.</sys:String>
+<sys:String x:Key="SI.MemPairs">Matching pairs ({0}): in the right slots, dual-channel covers all of the memory.</sys:String>
+<sys:String x:Key="SI.MemMixedSize2">Different sizes ({0}): on most systems the first {1} runs dual-channel and the other {2} single-channel. That works; only that part is a little slower.</sys:String>
+<sys:String x:Key="SI.MemMixedSize">Different sizes ({0}): part of the memory may run single-channel.</sys:String>
 <sys:String x:Key="SI.Adapter">Adapter</sys:String>
 <sys:String x:Key="SI.Driver">Driver</sys:String>
 <sys:String x:Key="SI.VideoMemory">Video memory</sys:String>
@@ -453,7 +465,17 @@
 <sys:String x:Key="DB.RndReadTip">Reading small pieces one at a time. Starting Windows and opening apps feels like this.</sys:String>
 <sys:String x:Key="DB.RndWriteTip">Writing small pieces: settings, browser cache, databases.</sys:String>
 <sys:String x:Key="DB.GraphTitle">Speed during the test</sys:String>
-<sys:String x:Key="DB.GraphScale">top of the graph = {0:0} MB/s</sys:String>
+<sys:String x:Key="DB.PrepareLine">preparing the test file</sys:String>
+<sys:String x:Key="DB.TestName">{0} ({1})</sys:String>
+<sys:String x:Key="DB.T.SEQ1M.Q8T1">Sequential, many requests</sys:String>
+<sys:String x:Key="DB.T.SEQ1M.Q1T1">Sequential, one request</sys:String>
+<sys:String x:Key="DB.T.RND4K.Q32T1">Random, many requests</sys:String>
+<sys:String x:Key="DB.T.RND4K.Q1T1">Random, one request</sys:String>
+<sys:String x:Key="DB.TT.SEQ1M.Q8T1">1 MiB pieces one after another, 8 requests at a time: big file copies.</sys:String>
+<sys:String x:Key="DB.TT.SEQ1M.Q1T1">1 MiB pieces one after another, one request at a time.</sys:String>
+<sys:String x:Key="DB.TT.RND4K.Q32T1">4 KiB pieces at random places, 32 requests at a time: a busy disk with many programs.</sys:String>
+<sys:String x:Key="DB.TT.RND4K.Q1T1">4 KiB pieces at random places, one request at a time: starting Windows and opening apps.</sys:String>
+<sys:String x:Key="DB.GraphScale">MB/s, logarithmic scale (each line is 10×)</sys:String>
 <sys:String x:Key="DB.Advanced">Advanced</sys:String>
 <sys:String x:Key="DB.Size">Test file size</sys:String>
 <sys:String x:Key="DB.Passes">Passes (the best one counts)</sys:String>

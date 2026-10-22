@@ -4,7 +4,11 @@
         xmlns:ui="clr-namespace:SawnTask.Ui"
         Title="SawnTask" Icon="Assets/SawnTask.ico" Width="1320" Height="860" MinWidth="900" MinHeight="600"
         Background="{DynamicResource Bg}" Foreground="{DynamicResource Fg}"
-        FontFamily="Segoe UI" FontSize="13">
+        FontFamily="Segoe UI" FontSize="13"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+    <!-- UseLayoutRounding keeps every element on whole pixels (star columns otherwise put text
+         and the 16 px program icons between two pixels, which blurs them); Display text is
+         drawn on the pixel grid like other Windows apps at small sizes. -->
     <!-- All colours and texts are {DynamicResource ...}: Themes/*.xaml and Strings/*.xaml
          can be swapped at run time (Settings page) and the window updates immediately. -->
     <Window.Resources>

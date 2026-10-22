@@ -21,6 +21,8 @@ public sealed class ThemedMessageBox : Window
         WindowStartupLocation = WindowStartupLocation.CenterOwner;
         ResizeMode = ResizeMode.NoResize;
         ShowInTaskbar = false;
+        UseLayoutRounding = true; // sharp text, as in the main window
+        TextOptions.SetTextFormattingMode(this, TextFormattingMode.Display);
         SetResourceReference(BackgroundProperty, "Bg");
         SetResourceReference(ForegroundProperty, "Fg");
 

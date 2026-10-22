@@ -14,37 +14,68 @@ public interface IMetricProvider
 // Slow-tier source with "last good" caching: lists that change rarely (services,
 // startup items, ...) are read every few seconds instead of every tick, and the
 // last good list is kept when a read fails.
-public sealed class SlowSource<T>(string id, string description, Func<List<T>> read, TimeSpan period)
+// background: the read runs on a thread-pool thread instead of the collector's, for sources
+// whose one read takes longer than a tick (the driver list: 250-650 ms). Ticks go on with
+// the last list meanwhile, so the graphs do not stall each time it is due.
+public sealed class SlowSource<T>(string id, string description, Func<List<T>> read, TimeSpan period, bool background = false)
 {
     public static readonly TimeSpan MaxAge = TimeSpan.FromSeconds(12);
 
     public TimeSpan Period { get; } = period;
+    public bool Background { get; } = background;
     public double NextDueMs { get; set; }
 
+    // A background read writes these while the collector reads them: one lock keeps the list
+    // and its status in step.
+    readonly object gate = new();
     IReadOnlyList<T> cache = [];
     DateTime lastGoodUtc = DateTime.MinValue;
     SourceHealth health = SourceHealth.NotYetRun;
     string detail = "not yet collected";
+    int reading; // 1 while a background read runs
 
-    public IReadOnlyList<T> Current => cache;
-    public SourceStatus Status => new(id, description, health, detail, lastGoodUtc);
+    public IReadOnlyList<T> Current { get { lock (gate) return cache; } }
+    public SourceStatus Status { get { lock (gate) return new(id, description, health, detail, lastGoodUtc); } }
+
+    // Starts a read: on this thread, or in the background unless one is still running.
+    public void Start()
+    {
+        if (!Background)
+        {
+            Refresh();
+            return;
+        }
+        if (Interlocked.Exchange(ref reading, 1) == 1) return;
+        Task.Run(() =>
+        {
+            try { Refresh(); }
+            finally { Volatile.Write(ref reading, 0); }
+        });
+    }
 
     public void Refresh()
     {
         try
         {
-            cache = read();
-            lastGoodUtc = DateTime.UtcNow;
-            health = SourceHealth.Ok;
-            detail = $"{cache.Count} items";
+            var fresh = read();
+            lock (gate)
+            {
+                cache = fresh;
+                lastGoodUtc = DateTime.UtcNow;
+                health = SourceHealth.Ok;
+                detail = $"{fresh.Count} items";
+            }
         }
         catch (Exception e)
         {
-            // A source refreshed less often than MaxAge keeps its data for one extra period.
-            bool young = DateTime.UtcNow - lastGoodUtc <= (Period > MaxAge ? Period * 2 : MaxAge);
-            health = young ? SourceHealth.Stale : SourceHealth.Failed;
-            detail = (young ? "showing last good data; " : "cache discarded; ") + e.Message;
-            if (!young) cache = [];
+            lock (gate)
+            {
+                // A source refreshed less often than MaxAge keeps its data for one extra period.
+                bool young = DateTime.UtcNow - lastGoodUtc <= (Period > MaxAge ? Period * 2 : MaxAge);
+                health = young ? SourceHealth.Stale : SourceHealth.Failed;
+                detail = (young ? "showing last good data; " : "cache discarded; ") + e.Message;
+                if (!young) cache = [];
+            }
         }
     }
 }
@@ -93,9 +124,9 @@ public sealed class Collector : IDisposable
         sessions = new SlowSource<UserSession>("windows.sessions",
             "WTS logon sessions (WTSEnumerateSessionsW + WTSQuerySessionInformationW)", SessionsProvider.Read, SlowTierPeriod);
         installedApps = new SlowSource<InstalledApp>("windows.installed",
-            "Uninstall registry keys: HKLM (64- and 32-bit) and HKCU", InstalledAppsProvider.Read, TimeSpan.FromSeconds(30));
+            "Uninstall registry keys: HKLM (64- and 32-bit) and HKCU", InstalledAppsProvider.Read, TimeSpan.FromSeconds(30), background: true);
         drivers = new SlowSource<DriverItem>("windows.drivers",
-            "SCM driver services + each .sys file's version resource", DriversProvider.Read, TimeSpan.FromSeconds(60));
+            "SCM driver services + each .sys file's version resource", DriversProvider.Read, TimeSpan.FromSeconds(60), background: true);
     }
 
     // How long each source took in the latest tick, in milliseconds (the --selftest prints them).
@@ -203,7 +234,7 @@ public sealed class Collector : IDisposable
     static void Refresh<T>(SlowSource<T> source, double nowMs)
     {
         if (nowMs < source.NextDueMs) return;
-        source.Refresh();
+        source.Start();
         source.NextDueMs = nowMs + source.Period.TotalMilliseconds;
     }
 
@@ -213,7 +244,9 @@ public sealed class Collector : IDisposable
     public void Dispose()
     {
         stop.Cancel();
-        thread?.Join(2000);
+        // If a read is still running after 2 s, the providers' native buffers stay allocated:
+        // freeing them under that read would crash the app. The process is exiting anyway.
+        if (thread is not null && !thread.Join(2000)) return;
         foreach (var provider in fast.OfType<IDisposable>()) provider.Dispose();
     }
 }

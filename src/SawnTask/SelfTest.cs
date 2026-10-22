@@ -14,6 +14,18 @@ public static class SelfTest
         // Rates need two samples; the third shows steady state.
         Snapshot s = collector.CollectOnce();
         o.WriteLine($"tick 1: CPU = {Fmt.Pct(s.CpuPercent)} (expected '{Fmt.Missing}': no previous sample yet)");
+        // Every slow source is due in the first tick; the drivers and installed apps are read in the background.
+        o.WriteLine($"tick 1: slow sources held the tick for {collector.Timings["slow sources"]:0.0} ms");
+        // Ticks while that background read runs must stay short (nothing they need may wait for it).
+        var during = new List<double>();
+        for (var watch = System.Diagnostics.Stopwatch.StartNew(); watch.ElapsedMilliseconds < 1500;)
+        {
+            long began = System.Diagnostics.Stopwatch.GetTimestamp();
+            collector.CollectOnce();
+            during.Add(System.Diagnostics.Stopwatch.GetElapsedTime(began).TotalMilliseconds);
+            Thread.Sleep(100);
+        }
+        o.WriteLine($"ticks during the background reads: {during.Count}, longest {during.Max():0.0} ms, median {during.Order().ElementAt(during.Count / 2):0.0} ms");
         Thread.Sleep(1000);
         collector.CollectOnce();
         Thread.Sleep(1000);
@@ -84,6 +96,21 @@ public static class SelfTest
             Thread.Sleep(250);
         }
         o.WriteLine("TICK TIME (ms, average): " + string.Join(", ", spent.OrderByDescending(x => x.Value).Select(x => $"{x.Key} {x.Value:0.0}")));
+
+        // The slow sources are read on the collector thread when they are due, so one read holds up
+        // that tick. The average above hides them (they are rarely due); here is one read of each.
+        static double Time(Action read)
+        {
+            long began = System.Diagnostics.Stopwatch.GetTimestamp();
+            read();
+            return System.Diagnostics.Stopwatch.GetElapsedTime(began).TotalMilliseconds;
+        }
+        o.WriteLine("SLOW SOURCE READ (ms): "
+            + $"startup {Time(() => SawnTask.Providers.StartupProvider.Read()):0.0}, "
+            + $"services {Time(() => SawnTask.Providers.ServiceProvider.Read()):0.0}, "
+            + $"sessions {Time(() => SawnTask.Providers.SessionsProvider.Read()):0.0}, "
+            + $"installed apps {Time(() => SawnTask.Providers.InstalledAppsProvider.Read()):0.0}, "
+            + $"drivers {Time(() => SawnTask.Providers.DriversProvider.Read()):0.0}");
 
         // The byte counters must agree with .NET's, counting only adapters that have an IPv4 address.
         var (nr, nt, na) = SawnTask.Providers.NetworkProvider.ReadCounters();

@@ -147,6 +147,35 @@ public partial class SystemInfoPage : UserControl
     static string Speed(long bitsPerSecond) =>
         bitsPerSecond <= 0 ? Fmt.Missing : bitsPerSecond >= 1_000_000_000 ? $"{bitsPerSecond / 1e9:0.#} Gb/s" : $"{bitsPerSecond / 1_000_000} Mb/s";
 
+    // Do the modules run at the speed they are rated for? SMBIOS gives both: Speed (the module's
+    // rating) and Configured Memory Speed (what the board set). All channels run at one speed,
+    // so mixed modules fall to the slowest one's rating.
+    internal static string? MemorySpeedCheck(List<MemoryModule> modules)
+    {
+        var known = modules.Where(m => m.SpeedMTs > 0 && m.ConfiguredMTs > 0).ToList();
+        if (known.Count == 0) return null;
+        if (known.FirstOrDefault(m => m.ConfiguredMTs > m.SpeedMTs) is { } above)
+            return Loc.F("SI.MemAbove", above.ConfiguredMTs, above.SpeedMTs);
+        int running = known.Min(m => m.ConfiguredMTs), slowest = known.Min(m => m.SpeedMTs), fastest = known.Max(m => m.SpeedMTs);
+        if (running < slowest) return Loc.F("SI.MemBelow", running, slowest);
+        if (slowest < fastest) return Loc.F("SI.MemSlowest", slowest, fastest);
+        return Loc.F("SI.MemAtRated", running);
+    }
+
+    // Matched sizes let dual-channel cover all of the memory; with two different sizes the
+    // matched part is dual-channel and the rest single-channel (Intel Flex Memory and the like).
+    internal static string? MemoryMatch(List<MemoryModule> modules)
+    {
+        if (modules.Count == 0) return null;
+        if (modules.Count == 1) return T("SI.MemSingle");
+        string sizes = string.Join(" + ", modules.Select(m => Fmt.Bytes(m.SizeBytes)));
+        if (modules.All(m => m.SizeBytes == modules[0].SizeBytes)) return Loc.F("SI.MemSameSize", Fmt.Bytes(modules[0].SizeBytes));
+        if (modules.GroupBy(m => m.SizeBytes).All(g => g.Count() % 2 == 0)) return Loc.F("SI.MemPairs", sizes);
+        if (modules.Count > 2) return Loc.F("SI.MemMixedSize", sizes);
+        long dual = 2 * modules.Min(m => m.SizeBytes);
+        return Loc.F("SI.MemMixedSize2", sizes, Fmt.Bytes(dual), Fmt.Bytes(modules.Sum(m => m.SizeBytes) - dual));
+    }
+
     static List<InfoRow> Rows(string category, SystemInfoData d, Snapshot? s)
     {
         var r = new List<InfoRow>();
@@ -191,9 +220,15 @@ public partial class SystemInfoPage : UserControl
                     var m = d.Modules[i];
                     string kind = string.Join(" ", new[] { m.Type, m.Form }.Where(x => x.Length > 0));
                     int speed = m.ConfiguredMTs > 0 ? m.ConfiguredMTs : m.SpeedMTs;
+                    string speedText = speed <= 0 ? ""
+                        : m.ConfiguredMTs > 0 && m.SpeedMTs > 0 && m.ConfiguredMTs != m.SpeedMTs ? Loc.F("SI.MemSpeedRated", m.ConfiguredMTs, m.SpeedMTs)
+                        : $"{speed} MT/s";
                     Add(Or(m.Slot.Length > 0 ? m.Slot : $"{T("SI.Module")} {i + 1}"),
-                        string.Join(" · ", new[] { Fmt.Bytes(m.SizeBytes), kind, speed > 0 ? $"{speed} MT/s" : "", m.Manufacturer, m.PartNumber }.Where(x => x.Length > 0)));
+                        string.Join(" · ", new[] { Fmt.Bytes(m.SizeBytes), kind, speedText, m.Manufacturer, m.PartNumber }.Where(x => x.Length > 0)),
+                        "SMBIOS type 17: Configured Memory Speed / Speed");
                 }
+                if (MemorySpeedCheck(d.Modules) is { } check) Add(T("SI.MemSpeedCheck"), check, "SMBIOS type 17: Configured Memory Speed vs Speed");
+                if (MemoryMatch(d.Modules) is { } match) Add(T("SI.MemMatch"), match, "SMBIOS type 17: Size, Speed");
                 break;
 
             case "SI.C.Graphics":
